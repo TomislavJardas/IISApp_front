@@ -1,0 +1,35 @@
+﻿<Window x:Class="IISApp.CityWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:IISApp"
+        mc:Ignorable="d"
+        Title="CityWindow" Height="450" Width="800">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+
+        <Label Grid.Row="0" Grid.Column="0" Content="City:" Margin="5" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" />
+
+
+        <TextBox x:Name="CityNameTextBox" Grid.Row="0" Grid.Column="1" Margin="5"
+                 TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                 FontFamily="Consolas" FontSize="12" AcceptsReturn="False" />
+
+
+        <Button x:Name="SendXmlRpcRequestButton" Grid.Row="1" Content="Send XML-RPC Request" Margin="5" Click="SendXmlRpcRequestButton_Click" />
+
+        <TextBox x:Name="XmlRpcResponseTextBox" Grid.Row="2" Grid.ColumnSpan="2" Margin="5"
+                 VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" IsReadOnly="True"
+                 FontFamily="Consolas" FontSize="12" AcceptsReturn="True" />
+    </Grid>
+</Window>

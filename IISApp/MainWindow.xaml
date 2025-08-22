@@ -1,0 +1,34 @@
+﻿<Window x:Class="IISApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:IISApp"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+
+        <Grid Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+
+            <TextBlock Grid.Row="0" Text="Hi and Welcome to Weather" FontSize="24" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center" Margin="0 0 0 20" />
+
+
+            <Button Grid.Row="1" x:Name="OpenLoginWindowButton" Content="Open Login Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenLoginWindowButton_Click" />
+            <Button Grid.Row="2" x:Name="OpenCountriesWindowButton" Content="Open Validation Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenCountriesWindowButton_Click" />
+            <Button Grid.Row="3" x:Name="OpenSOAPWindowButton" Content="Open SOAP Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenSOAPWindowButton_Click" />
+            <Button Grid.Row="4" x:Name="OpenXRPCWindowBUtton" Content="Open XRPC Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenXRCPWindowButton_Click" />
+        </Grid>
+    </Grid>
+</Window>
