@@ -20,7 +20,7 @@
 
 
         <Label Grid.Row="0" Grid.Column="0" Content="Username:" Margin="5" VerticalAlignment="Center" />
-        <TextBox x:Name="UsernameTextBox" Grid.Row="0" Grid.Column="1" Margin="5" TextChanged="UsernameTextBox_TextChanged" />
+        <TextBox x:Name="UsernameTextBox" Grid.Row="0" Grid.Column="1" Margin="5" />
 
 
         <Label Grid.Row="1" Grid.Column="0" Content="Password:" Margin="5" VerticalAlignment="Center" />

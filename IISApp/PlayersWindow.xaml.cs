@@ -18,7 +18,7 @@ namespace IISApp
             _validator = validator;
         }
 
-        private Player BuildPlayer()
+        private Player BuildPlayer(bool includeId = true)
         {
             return new Player
             {

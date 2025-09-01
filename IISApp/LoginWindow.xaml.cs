@@ -21,17 +21,17 @@ namespace IISApp
         // Add this property to the LoginWindow class to fix CS0103
         public string AccessToken { get; private set; }
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
-         {
+        {
             string username = UsernameTextBox.Text.Trim();
             string password = PasswordBox.Password.Trim();
 
             try
             {
-                bool success = await _api.LoginAsync(username, password);
-                if (success)
+                // ApiService.LoginAsync returns a bool, not a token string
+                bool loginSuccess = await _api.LoginAsync(username, password);
+                if (loginSuccess)
                 {
-                    var token = await response.Content.ReadAsStringAsync();
-                    AccessToken = token.Trim(); // Remove whitespace if needed
+                    AccessToken = _api.AccessToken?.Trim(); // Get token from ApiService property
                     LoginStatusTextBlock.Text = "Login successful!";
                     PlayersWindow playersWindow = new PlayersWindow(_api, _validator);
                     playersWindow.Show();
