@@ -9,22 +9,24 @@ namespace IISApp
     public partial class MainWindow : Window
     {
         private readonly ApiService _api;
+        private readonly ValidationService _validator;
 
         public MainWindow()
         {
             InitializeComponent();
             _api = new ApiService("http://localhost:8080");
+            _validator = new ValidationService(_api);
         }
         private void OpenLoginWindowButton_Click(object sender, RoutedEventArgs e)
         {
-            LoginWindow loginWindow = new LoginWindow(_api);
+            LoginWindow loginWindow = new LoginWindow(_api, _validator);
             loginWindow.Show();
         }
 
-        private void OpenCountriesWindowButton_Click(object sender, RoutedEventArgs e)
+        private void OpenPlayersWindowButton_Click(object sender, RoutedEventArgs e)
         {
-            ValidateAndSaveWindow countriesWindow = new ValidateAndSaveWindow();
-            countriesWindow.Show();
+            PlayersWindow playersWindow = new PlayersWindow(_api, _validator);
+            playersWindow.Show();
         }
 
         private void OpenSOAPWindowButton_Click(object sender, RoutedEventArgs e)
