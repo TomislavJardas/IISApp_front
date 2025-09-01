@@ -27,10 +27,19 @@ namespace IISApp.Services
             if (!response.IsSuccessStatusCode)
                 return false;
 
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-            AccessToken = doc.RootElement.GetProperty("accessToken").GetString();
-            RefreshToken = doc.RootElement.TryGetProperty("refreshToken", out var refresh) ? refresh.GetString() : null;
+            var body = await response.Content.ReadAsStringAsync();
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                AccessToken = doc.RootElement.GetProperty("accessToken").GetString();
+                RefreshToken = doc.RootElement.TryGetProperty("refreshToken", out var refresh) ? refresh.GetString() : null;
+            }
+            catch (JsonException)
+            {
+                // Some services return the JWT as plain text rather than JSON
+                AccessToken = body.Trim().Trim('"');
+                RefreshToken = null;
+            }
             return !string.IsNullOrEmpty(AccessToken);
         }
 
