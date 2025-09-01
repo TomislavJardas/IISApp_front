@@ -27,10 +27,19 @@ namespace IISApp.Services
             if (!response.IsSuccessStatusCode)
                 return false;
 
-            var json = await response.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(json);
-            AccessToken = doc.RootElement.GetProperty("accessToken").GetString();
-            RefreshToken = doc.RootElement.TryGetProperty("refreshToken", out var refresh) ? refresh.GetString() : null;
+            var body = await response.Content.ReadAsStringAsync();
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                AccessToken = doc.RootElement.GetProperty("accessToken").GetString();
+                RefreshToken = doc.RootElement.TryGetProperty("refreshToken", out var refresh) ? refresh.GetString() : null;
+            }
+            catch (JsonException)
+            {
+                // Some services return the JWT as plain text rather than JSON
+                AccessToken = body.Trim().Trim('"');
+                RefreshToken = null;
+            }
             return !string.IsNullOrEmpty(AccessToken);
         }
 
@@ -42,11 +51,47 @@ namespace IISApp.Services
             }
         }
 
-        public async Task<string> GetCountriesAsync(string country, string year)
+        public async Task<Models.Player?> GetPlayerByIdAsync(int id)
         {
             ApplyHeaders();
-            var url = $"/countries?country={country}&year={year}";
-            return await _http.GetStringAsync(url);
+            var response = await _http.GetAsync($"/players/{id}");
+            if (!response.IsSuccessStatusCode)
+                return null;
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<Models.Player>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task<Models.Player[]?> GetAllPlayersAsync()
+        {
+            ApplyHeaders();
+            var response = await _http.GetAsync("/players");
+            if (!response.IsSuccessStatusCode)
+                return null;
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<Models.Player[]>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task<bool> CreatePlayerAsync(Models.Player player)
+        {
+            ApplyHeaders();
+            var content = new StringContent(JsonSerializer.Serialize(player), Encoding.UTF8, "application/json");
+            var response = await _http.PostAsync("/players", content);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UpdatePlayerAsync(Models.Player player)
+        {
+            ApplyHeaders();
+            var content = new StringContent(JsonSerializer.Serialize(player), Encoding.UTF8, "application/json");
+            var response = await _http.PutAsync($"/players/{player.Id}", content);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeletePlayerAsync(int id)
+        {
+            ApplyHeaders();
+            var response = await _http.DeleteAsync($"/players/{id}");
+            return response.IsSuccessStatusCode;
         }
     }
 }
