@@ -15,7 +15,7 @@ namespace IISApp
         {
             InitializeComponent();
             _api = new ApiService("http://localhost:8080");
-            _validator = new ValidationService("http://localhost:8080");
+            _validator = new ValidationService(_api);
         }
         private void OpenLoginWindowButton_Click(object sender, RoutedEventArgs e)
         {
