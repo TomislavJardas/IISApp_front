@@ -18,9 +18,10 @@ namespace IISApp
             _api = api;
             _validator = validator;
         }
-
+        // Add this property to the LoginWindow class to fix CS0103
+        public string AccessToken { get; private set; }
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
-        {
+         {
             string username = UsernameTextBox.Text.Trim();
             string password = PasswordBox.Password.Trim();
 
@@ -29,6 +30,8 @@ namespace IISApp
                 bool success = await _api.LoginAsync(username, password);
                 if (success)
                 {
+                    var token = await response.Content.ReadAsStringAsync();
+                    AccessToken = token.Trim(); // Remove whitespace if needed
                     LoginStatusTextBlock.Text = "Login successful!";
                     PlayersWindow playersWindow = new PlayersWindow(_api, _validator);
                     playersWindow.Show();
