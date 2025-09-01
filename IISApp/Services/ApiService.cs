@@ -10,6 +10,7 @@ namespace IISApp.Services
     public class ApiService
     {
         private readonly HttpClient _http;
+        public HttpClient HttpClient => _http;
 
         public string? AccessToken { get; private set; }
         public string? RefreshToken { get; private set; }
@@ -43,7 +44,7 @@ namespace IISApp.Services
             return !string.IsNullOrEmpty(AccessToken);
         }
 
-        private void ApplyHeaders()
+        public void ApplyHeaders()
         {
             if (!string.IsNullOrEmpty(AccessToken))
             {

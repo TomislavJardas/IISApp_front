@@ -1,4 +1,3 @@
-using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -7,27 +6,30 @@ namespace IISApp.Services
 {
     public class ValidationService
     {
-        private readonly HttpClient _http;
+        private readonly ApiService _api;
 
-        public ValidationService(string baseUrl)
+        public ValidationService(ApiService api)
         {
-            _http = new HttpClient { BaseAddress = new Uri(baseUrl) };
+            _api = api;
         }
 
         public async Task<string> ValidateAsync(string xml, string schema)
         {
-            var url = $"/validate?schema={schema}";
+            _api.ApplyHeaders();
+            var url = $"/validate?schema={schema.ToLowerInvariant()}";
             var content = new StringContent(xml, Encoding.UTF8, "application/xml");
-            var response = await _http.PostAsync(url, content);
+            var response = await _api.HttpClient.PostAsync(url, content);
             return await response.Content.ReadAsStringAsync();
         }
 
         public async Task<string> ValidateAndSaveAsync(string xml, string schema)
         {
-            var url = $"/validateAndSaveXml?schema={schema}";
+            _api.ApplyHeaders();
+            var url = $"/validateAndSaveXml?schema={schema.ToLowerInvariant()}";
             var content = new StringContent(xml, Encoding.UTF8, "application/xml");
-            var response = await _http.PostAsync(url, content);
+            var response = await _api.HttpClient.PostAsync(url, content);
             return await response.Content.ReadAsStringAsync();
         }
     }
 }
+
