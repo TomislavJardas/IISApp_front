@@ -45,7 +45,7 @@ namespace IISApp
         private string GetSelectedSchema()
         {
             if (SchemaComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem item)
-                return item.Content?.ToString() ?? "xsd";
+                return item.Content?.ToString()?.ToLowerInvariant() ?? "xsd";
             return "xsd";
         }
 

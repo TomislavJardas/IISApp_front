@@ -1,6 +1,3 @@
-﻿using System;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using IISApp.Services;
@@ -11,14 +8,14 @@ namespace IISApp
     {
         private readonly ValidationService _validator;
 
-        public ValidateAndSaveWindow() : this(new ValidationService("http://localhost:8080"))
+        public ValidateAndSaveWindow() : this(new ApiService("http://localhost:8080"))
         {
         }
 
-        public ValidateAndSaveWindow(ValidationService validator)
+        public ValidateAndSaveWindow(ApiService api)
         {
             InitializeComponent();
-            _validator = validator;
+            _validator = new ValidationService(api);
         }
 
         private string BuildPlayerXml()
@@ -34,7 +31,7 @@ namespace IISApp
         private string GetSchema()
         {
             if (SchemaComboBox.SelectedItem is ComboBoxItem item)
-                return item.Content?.ToString() ?? "xsd";
+                return item.Content?.ToString()?.ToLowerInvariant() ?? "xsd";
             return "xsd";
         }
 
@@ -47,7 +44,7 @@ namespace IISApp
                 var result = await _validator.ValidateAsync(xml, schema);
                 ResponseTextBox.Text = result;
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 ResponseTextBox.Text = $"Error: {ex.Message}";
             }
@@ -62,10 +59,11 @@ namespace IISApp
                 var result = await _validator.ValidateAndSaveAsync(xml, schema);
                 ResponseTextBox.Text = result;
             }
-            catch (Exception ex)
+            catch (System.Exception ex)
             {
                 ResponseTextBox.Text = $"Error: {ex.Message}";
             }
         }
     }
 }
+
