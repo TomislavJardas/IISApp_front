@@ -18,13 +18,13 @@
         </Grid.ColumnDefinitions>
 
 
-        <Label Grid.Row="0" Grid.Column="0" Content="Country:" Margin="5" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" />
+        <Label Grid.Row="0" Grid.Column="0" Content="Search:" Margin="5" VerticalAlignment="Center" FontSize="14" FontWeight="Bold" />
         <TextBox x:Name="SearchTermTextBox" Grid.Row="0" Grid.Column="1" Margin="5" />
 
 
         <Button x:Name="SendSOAPRequestButton" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Send SOAP Request" Margin="5" Click="SendSOAPRequestButton_Click" />
 
 
-        <TextBox x:Name="SOAPResponseTextBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="5" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" IsReadOnly="True" />
+        <ListBox x:Name="PlayersListBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="5" />
     </Grid>
 </Window>

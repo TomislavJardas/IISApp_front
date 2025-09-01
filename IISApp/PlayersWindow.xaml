@@ -1,0 +1,53 @@
+<Window x:Class="IISApp.PlayersWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Players" Height="500" Width="800">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Label Grid.Row="0" Grid.Column="0" Content="Id:" Margin="5"/>
+        <TextBox x:Name="IdTextBox" Grid.Row="0" Grid.Column="1" Margin="5"/>
+
+        <Label Grid.Row="1" Grid.Column="0" Content="Name:" Margin="5"/>
+        <TextBox x:Name="NameTextBox" Grid.Row="1" Grid.Column="1" Margin="5"/>
+
+        <Label Grid.Row="2" Grid.Column="0" Content="Team:" Margin="5"/>
+        <TextBox x:Name="TeamTextBox" Grid.Row="2" Grid.Column="1" Margin="5"/>
+
+        <Label Grid.Row="3" Grid.Column="0" Content="Season:" Margin="5"/>
+        <TextBox x:Name="SeasonTextBox" Grid.Row="3" Grid.Column="1" Margin="5"/>
+
+        <Label Grid.Row="4" Grid.Column="0" Content="Points:" Margin="5"/>
+        <TextBox x:Name="PointsTextBox" Grid.Row="4" Grid.Column="1" Margin="5"/>
+
+        <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="5">
+            <Label Content="Schema:" VerticalAlignment="Center"/>
+            <ComboBox x:Name="SchemaComboBox" Width="100" Margin="5">
+                <ComboBoxItem Content="XSD" IsSelected="True"/>
+                <ComboBoxItem Content="RNG"/>
+            </ComboBox>
+            <Button Content="Validate" Margin="5" Click="ValidateButton_Click"/>
+            <Button Content="Save" Margin="5" Click="SaveButton_Click"/>
+            <Button Content="Delete" Margin="5" Click="DeleteButton_Click"/>
+            <Button Content="Load All" Margin="5" Click="LoadAllButton_Click"/>
+        </StackPanel>
+
+        <ListBox x:Name="PlayersListBox" Grid.Row="7" Grid.ColumnSpan="2" Margin="5" />
+    </Grid>
+</Window>

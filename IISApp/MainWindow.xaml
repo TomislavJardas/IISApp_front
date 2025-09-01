@@ -26,9 +26,9 @@
 
 
             <Button Grid.Row="1" x:Name="OpenLoginWindowButton" Content="Open Login Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenLoginWindowButton_Click" />
-            <Button Grid.Row="2" x:Name="OpenCountriesWindowButton" Content="Open Validation Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenCountriesWindowButton_Click" />
+            <Button Grid.Row="2" x:Name="OpenPlayersWindowButton" Content="Open Players Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenPlayersWindowButton_Click" />
             <Button Grid.Row="3" x:Name="OpenSOAPWindowButton" Content="Open SOAP Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenSOAPWindowButton_Click" />
-            <Button Grid.Row="4" x:Name="OpenXRPCWindowBUtton" Content="Open XRPC Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenXRCPWindowButton_Click" />
+            <Button Grid.Row="4" x:Name="OpenXmlRpcWindowButton" Content="Open XRPC Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenXmlRpcWindowButton_Click" />
         </Grid>
     </Grid>
 </Window>
