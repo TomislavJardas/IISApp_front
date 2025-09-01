@@ -42,11 +42,47 @@ namespace IISApp.Services
             }
         }
 
-        public async Task<string> GetCountriesAsync(string country, string year)
+        public async Task<Models.Player?> GetPlayerByIdAsync(int id)
         {
             ApplyHeaders();
-            var url = $"/countries?country={country}&year={year}";
-            return await _http.GetStringAsync(url);
+            var response = await _http.GetAsync($"/players/{id}");
+            if (!response.IsSuccessStatusCode)
+                return null;
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<Models.Player>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task<Models.Player[]?> GetAllPlayersAsync()
+        {
+            ApplyHeaders();
+            var response = await _http.GetAsync("/players");
+            if (!response.IsSuccessStatusCode)
+                return null;
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonSerializer.Deserialize<Models.Player[]>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        }
+
+        public async Task<bool> CreatePlayerAsync(Models.Player player)
+        {
+            ApplyHeaders();
+            var content = new StringContent(JsonSerializer.Serialize(player), Encoding.UTF8, "application/json");
+            var response = await _http.PostAsync("/players", content);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> UpdatePlayerAsync(Models.Player player)
+        {
+            ApplyHeaders();
+            var content = new StringContent(JsonSerializer.Serialize(player), Encoding.UTF8, "application/json");
+            var response = await _http.PutAsync($"/players/{player.Id}", content);
+            return response.IsSuccessStatusCode;
+        }
+
+        public async Task<bool> DeletePlayerAsync(int id)
+        {
+            ApplyHeaders();
+            var response = await _http.DeleteAsync($"/players/{id}");
+            return response.IsSuccessStatusCode;
         }
     }
 }

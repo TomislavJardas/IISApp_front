@@ -1,64 +1,66 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+using IISApp.Services;
 
 namespace IISApp
 {
-   
     public partial class ValidateAndSaveWindow : Window
     {
-        public ValidateAndSaveWindow()
+        private readonly ValidationService _validator;
+
+        public ValidateAndSaveWindow() : this(new ValidationService("http://localhost:8080"))
+        {
+        }
+
+        public ValidateAndSaveWindow(ValidationService validator)
         {
             InitializeComponent();
-        }
-        private async void SendToValidateButton_Click(object sender, RoutedEventArgs e)
-        {
-            await SendRequestAsync("http://localhost:8081/validate");
+            _validator = validator;
         }
 
-        private async void SendToSaveAndValidateButton_Click(object sender, RoutedEventArgs e)
+        private string BuildPlayerXml()
         {
-            await SendRequestAsync("http://localhost:8080/validateAndSaveXml");
+            var name = NameTextBox.Text;
+            var team = TeamTextBox.Text;
+            var season = SeasonTextBox.Text;
+            var points = PointsTextBox.Text;
+
+            return $"<Players><Player><name>{name}</name><team>{team}</team><season>{season}</season><points>{points}</points></Player></Players>";
         }
 
-        private async Task SendRequestAsync(string url)
+        private string GetSchema()
         {
-            string countryName = CountryNameTextBox.Text;
-            string subRegion = SubRegionTextBox.Text;
-            string year = YearTextBox.Text;
-            string value = ValueTextBox.Text;
+            if (SchemaComboBox.SelectedItem is ComboBoxItem item)
+                return item.Content?.ToString() ?? "xsd";
+            return "xsd";
+        }
 
-
-            string xmlBody = $"""
-            <Countries>
-                <Country>
-                    <name>{countryName}</name>
-                    <subRegion>{subRegion}</subRegion>
-                    <year>{year}</year>
-                    <value>{value}</value>
-                </Country>
-            </Countries>
-            """;
-
+        private async void ValidateButton_Click(object sender, RoutedEventArgs e)
+        {
+            var xml = BuildPlayerXml();
+            var schema = GetSchema();
             try
             {
-                using HttpClient client = new HttpClient();
-                StringContent content = new StringContent(xmlBody, Encoding.UTF8, "application/xml");
-                HttpResponseMessage response = await client.PostAsync(url, content);
+                var result = await _validator.ValidateAsync(xml, schema);
+                ResponseTextBox.Text = result;
+            }
+            catch (Exception ex)
+            {
+                ResponseTextBox.Text = $"Error: {ex.Message}";
+            }
+        }
 
-                string responseContent = await response.Content.ReadAsStringAsync();
-                ResponseTextBox.Text = responseContent;
+        private async void ValidateAndSaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            var xml = BuildPlayerXml();
+            var schema = GetSchema();
+            try
+            {
+                var result = await _validator.ValidateAndSaveAsync(xml, schema);
+                ResponseTextBox.Text = result;
             }
             catch (Exception ex)
             {

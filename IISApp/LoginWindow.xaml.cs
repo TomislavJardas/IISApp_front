@@ -10,11 +10,13 @@ namespace IISApp
     public partial class LoginWindow : Window
     {
         private readonly ApiService _api;
+        private readonly ValidationService _validator;
 
-        public LoginWindow(ApiService api)
+        public LoginWindow(ApiService api, ValidationService validator)
         {
             InitializeComponent();
             _api = api;
+            _validator = validator;
         }
 
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
@@ -28,8 +30,8 @@ namespace IISApp
                 if (success)
                 {
                     LoginStatusTextBlock.Text = "Login successful!";
-                    CountriesWindow countriesWindow = new CountriesWindow(_api);
-                    countriesWindow.Show();
+                    PlayersWindow playersWindow = new PlayersWindow(_api, _validator);
+                    playersWindow.Show();
                     this.Close();
                 }
                 else

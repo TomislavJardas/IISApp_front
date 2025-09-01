@@ -21,22 +21,27 @@
         </Grid.ColumnDefinitions>
 
 
-        <Label Grid.Row="0" Grid.Column="0" Content="Country Name:" Margin="5" VerticalAlignment="Center" />
-        <TextBox x:Name="CountryNameTextBox" Grid.Row="0" Grid.Column="1" Margin="5" />
+        <Label Grid.Row="0" Grid.Column="0" Content="Name:" Margin="5" VerticalAlignment="Center" />
+        <TextBox x:Name="NameTextBox" Grid.Row="0" Grid.Column="1" Margin="5" />
 
-        <Label Grid.Row="1" Grid.Column="0" Content="SubRegion:" Margin="5" VerticalAlignment="Center" />
-        <TextBox x:Name="SubRegionTextBox" Grid.Row="1" Grid.Column="1" Margin="5" />
+        <Label Grid.Row="1" Grid.Column="0" Content="Team:" Margin="5" VerticalAlignment="Center" />
+        <TextBox x:Name="TeamTextBox" Grid.Row="1" Grid.Column="1" Margin="5" />
 
-        <Label Grid.Row="2" Grid.Column="0" Content="Year:" Margin="5" VerticalAlignment="Center" />
-        <TextBox x:Name="YearTextBox" Grid.Row="2" Grid.Column="1" Margin="5" />
+        <Label Grid.Row="2" Grid.Column="0" Content="Season:" Margin="5" VerticalAlignment="Center" />
+        <TextBox x:Name="SeasonTextBox" Grid.Row="2" Grid.Column="1" Margin="5" />
 
-        <Label Grid.Row="3" Grid.Column="0" Content="Value:" Margin="5" VerticalAlignment="Center" />
-        <TextBox x:Name="ValueTextBox" Grid.Row="3" Grid.Column="1" Margin="5" />
+        <Label Grid.Row="3" Grid.Column="0" Content="Points:" Margin="5" VerticalAlignment="Center" />
+        <TextBox x:Name="PointsTextBox" Grid.Row="3" Grid.Column="1" Margin="5" />
 
 
         <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="5">
-            <Button x:Name="SendToValidateButton" Content="Send to Validate" Margin="5" Click="SendToValidateButton_Click" />
-            <Button x:Name="SendToSaveAndValidateButton" Content="Send to Save and Validate" Margin="5" Click="SendToSaveAndValidateButton_Click" />
+            <Label Content="Schema:" VerticalAlignment="Center" Margin="5"/>
+            <ComboBox x:Name="SchemaComboBox" Width="100" Margin="5">
+                <ComboBoxItem Content="XSD" IsSelected="True"/>
+                <ComboBoxItem Content="RNG"/>
+            </ComboBox>
+            <Button x:Name="ValidateButton" Content="Validate" Margin="5" Click="ValidateButton_Click" />
+            <Button x:Name="ValidateAndSaveButton" Content="Validate &amp; Save" Margin="5" Click="ValidateAndSaveButton_Click" />
         </StackPanel>
 
 
