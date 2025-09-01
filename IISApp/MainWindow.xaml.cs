@@ -1,13 +1,5 @@
-﻿using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using IISApp.Services;
 
 namespace IISApp
 {
@@ -16,13 +8,16 @@ namespace IISApp
     /// </summary>
     public partial class MainWindow : Window
     {
+        private readonly ApiService _api;
+
         public MainWindow()
         {
             InitializeComponent();
+            _api = new ApiService("http://localhost:8080");
         }
         private void OpenLoginWindowButton_Click(object sender, RoutedEventArgs e)
         {
-            LoginWindow loginWindow = new LoginWindow();
+            LoginWindow loginWindow = new LoginWindow(_api);
             loginWindow.Show();
         }
 

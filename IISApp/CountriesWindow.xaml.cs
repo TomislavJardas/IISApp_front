@@ -1,17 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
+using IISApp.Services;
 
 namespace IISApp
 {
@@ -20,29 +9,23 @@ namespace IISApp
     /// </summary>
     public partial class CountriesWindow : Window
     {
-        private readonly string _jwtToken;
+        private readonly ApiService _api;
 
-        public CountriesWindow(string jwtToken)
+        public CountriesWindow(ApiService api)
         {
             InitializeComponent();
-            _jwtToken = jwtToken;
+            _api = api;
         }
 
         private async void SearchButton_Click(object sender, RoutedEventArgs e)
         {
             string country = CountryTextBox.Text;
             string year = YearTextBox.Text;
-            string requestUrl = $"http://localhost:8080/countries?country={country}&year={year}";
 
             try
             {
-                using HttpClient client = new HttpClient();
-                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {_jwtToken}");
-                HttpResponseMessage response = await client.GetAsync(requestUrl);
-                response.EnsureSuccessStatusCode();
-
-                string responseContent = await response.Content.ReadAsStringAsync();
-                ResponseTextBox.Text = responseContent;
+                string response = await _api.GetCountriesAsync(country, year);
+                ResponseTextBox.Text = response;
             }
             catch (Exception ex)
             {
@@ -51,4 +34,3 @@ namespace IISApp
         }
     }
 }
-
