@@ -55,7 +55,9 @@ namespace IISApp.Services
             {
                 var doc = new XmlDocument();
                 doc.LoadXml(xml);
-                var structs = doc.SelectNodes("/methodResponse/params/param/value/array/data/value/struct");
+
+                // Support both array and single struct responses
+                var structs = doc.SelectNodes("/methodResponse/params/param/value/array/data/value/struct | /methodResponse/params/param/value/struct");
                 if (structs == null || structs.Count == 0)
                 {
                     Console.WriteLine($"Unexpected XML structure: {doc.OuterXml}");
@@ -64,8 +66,9 @@ namespace IISApp.Services
 
                 foreach (XmlNode structNode in structs)
                 {
-                    var cityNode = structNode.SelectSingleNode("member[name='city']/value");
-                    var tempNode = structNode.SelectSingleNode("member[name='temperature']/value");
+                    // Member name can be an element or an attribute
+                    var cityNode = structNode.SelectSingleNode("member[name='city']/value | member[@name='city']/value");
+                    var tempNode = structNode.SelectSingleNode("member[name='temperature']/value | member[@name='temperature']/value");
                     if (cityNode == null || tempNode == null)
                         continue;
 
