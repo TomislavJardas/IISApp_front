@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -53,27 +54,20 @@ namespace IISApp.Services
             {
                 var doc = new XmlDocument();
                 doc.LoadXml(xml);
-                var structs = doc.GetElementsByTagName("struct");
-                foreach (XmlNode s in structs)
+                var structs = doc.SelectNodes("//methodResponse/params/param/value/array/data/value/struct");
+                if (structs != null)
                 {
-                    string? name = null;
-                    double temp = 0;
-                    foreach (XmlNode member in s.ChildNodes)
+                    foreach (XmlNode structNode in structs)
                     {
-                        if (member.Name != "member") continue;
-                        var nameNode = member.SelectSingleNode("name");
-                        var valueNode = member.SelectSingleNode("value");
-                        if (nameNode == null || valueNode == null) continue;
-                        if (nameNode.InnerText.Equals("city", StringComparison.OrdinalIgnoreCase))
-                            name = valueNode.InnerText;
-                        else if (nameNode.InnerText.Equals("temperature", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (!double.TryParse(valueNode.InnerText, out temp))
-                                temp = double.NaN; // or skip, or set to 0
-                        }
+                        var cityNode = structNode.SelectSingleNode("member[name='city']/value");
+                        var tempNode = structNode.SelectSingleNode("member[name='temperature']/value");
+                        if (cityNode == null || tempNode == null)
+                            continue;
+
+                        var cityName = cityNode.InnerText;
+                        var temperature = double.Parse(tempNode.InnerText, CultureInfo.InvariantCulture);
+                        result[cityName] = temperature;
                     }
-                    if (!string.IsNullOrEmpty(name))
-                        result[name] = temp;
                 }
             }
             catch (XmlException ex)
