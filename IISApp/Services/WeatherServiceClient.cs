@@ -65,8 +65,10 @@ namespace IISApp.Services
                             continue;
 
                         var cityName = cityNode.InnerText;
-                        var temperature = double.Parse(tempNode.InnerText, CultureInfo.InvariantCulture);
-                        result[cityName] = temperature;
+                        if (double.TryParse(tempNode.InnerText, NumberStyles.Float, CultureInfo.InvariantCulture, out var temperature))
+                        {
+                            result[cityName] = temperature;
+                        }
                     }
                 }
             }
