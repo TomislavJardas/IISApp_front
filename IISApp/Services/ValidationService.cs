@@ -13,19 +13,10 @@ namespace IISApp.Services
             _api = api;
         }
 
-        public async Task<string> ValidateAsync(string xml, string schema)
-        {
-            _api.ApplyHeaders();
-            var url = $"/validate?schema={schema.ToLowerInvariant()}";
-            var content = new StringContent(xml, Encoding.UTF8, "application/xml");
-            var response = await _api.HttpClient.PostAsync(url, content);
-            return await response.Content.ReadAsStringAsync();
-        }
-
         public async Task<string> ValidateAndSaveAsync(string xml, string schema)
         {
             _api.ApplyHeaders();
-            var url = $"/validateAndSaveXml?schema={schema.ToLowerInvariant()}";
+            var url = "/validateAndSaveXml";
             var content = new StringContent(xml, Encoding.UTF8, "application/xml");
             var response = await _api.HttpClient.PostAsync(url, content);
             return await response.Content.ReadAsStringAsync();
