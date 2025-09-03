@@ -66,7 +66,7 @@ namespace IISApp.Services
         public async Task<Models.Player?> GetPlayerByIdAsync(int id)
         {
             ApplyHeaders();
-            var response = await _http.GetAsync($"/players/{id}");
+            var response = await _http.GetAsync($"/api/players/{id}");
             if (!response.IsSuccessStatusCode)
                 return null;
             var json = await response.Content.ReadAsStringAsync();
@@ -76,7 +76,7 @@ namespace IISApp.Services
         public async Task<Models.Player[]?> GetAllPlayersAsync()
         {
             ApplyHeaders();
-            var response = await _http.GetAsync("/players");
+            var response = await _http.GetAsync("/api/players");
             if (!response.IsSuccessStatusCode)
                 return null;
             var json = await response.Content.ReadAsStringAsync();
@@ -87,7 +87,7 @@ namespace IISApp.Services
         {
             ApplyHeaders();
             var content = new StringContent(JsonSerializer.Serialize(player), Encoding.UTF8, "application/json");
-            var response = await _http.PostAsync("/players", content);
+            var response = await _http.PostAsync("/api/players", content);
             return response.IsSuccessStatusCode;
         }
 
@@ -95,14 +95,14 @@ namespace IISApp.Services
         {
             ApplyHeaders();
             var content = new StringContent(JsonSerializer.Serialize(player), Encoding.UTF8, "application/json");
-            var response = await _http.PutAsync($"/players/{player.Id}", content);
+            var response = await _http.PutAsync($"/api/players/{player.Id}", content);
             return response.IsSuccessStatusCode;
         }
 
         public async Task<bool> DeletePlayerAsync(int id)
         {
             ApplyHeaders();
-            var response = await _http.DeleteAsync($"/players/{id}");
+            var response = await _http.DeleteAsync($"/api/players/{id}");
             return response.IsSuccessStatusCode;
         }
     }

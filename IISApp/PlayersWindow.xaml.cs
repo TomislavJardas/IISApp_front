@@ -60,19 +60,17 @@ namespace IISApp
             var player = BuildPlayer();
             var xml = BuildPlayerXml(player);
             var schema = GetSelectedSchema();
-            var validation = await _validator.ValidateAsync(xml, schema);
-            if (!string.IsNullOrWhiteSpace(validation))
+            if (player.Id > 0)
             {
-                MessageBox.Show(validation, "Validation result");
+                var success = await _api.UpdatePlayerAsync(player);
+                MessageBox.Show(success ? "Saved" : "Save failed");
+            }
+            else
+            {
+                var result = await _validator.ValidateAndSaveAsync(xml, schema);
+                MessageBox.Show(result, "Validation result");
             }
 
-            bool success;
-            if (player.Id > 0)
-                success = await _api.UpdatePlayerAsync(player);
-            else
-                success = await _api.CreatePlayerAsync(player);
-
-            MessageBox.Show(success ? "Saved" : "Save failed");
             LoadAllButton_Click(sender, e);
         }
 
@@ -91,7 +89,7 @@ namespace IISApp
             var player = BuildPlayer();
             var xml = BuildPlayerXml(player);
             var schema = GetSelectedSchema();
-            var result = await _validator.ValidateAsync(xml, schema);
+            var result = await _validator.ValidateAndSaveAsync(xml, schema);
             MessageBox.Show(result, "Validation result");
         }
     }
