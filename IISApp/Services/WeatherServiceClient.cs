@@ -56,26 +56,31 @@ namespace IISApp.Services
                 var doc = new XmlDocument();
                 doc.LoadXml(xml);
 
-                // Support both array and single struct responses
+                // Try to parse struct nodes first
                 var structs = doc.SelectNodes("/methodResponse/params/param/value/array/data/value/struct | /methodResponse/params/param/value/struct");
-                if (structs == null || structs.Count == 0)
+                if (structs != null && structs.Count > 0)
                 {
-                    Console.WriteLine($"Unexpected XML structure: {doc.OuterXml}");
-                    return result;
-                }
-
-                foreach (XmlNode structNode in structs)
-                {
-                    // Member name can be an element or an attribute
-                    var cityNode = structNode.SelectSingleNode("member[name='city']/value | member[@name='city']/value");
-                    var tempNode = structNode.SelectSingleNode("member[name='temperature']/value | member[@name='temperature']/value");
-                    if (cityNode == null || tempNode == null)
-                        continue;
-
-                    var cityName = cityNode.InnerText;
-                    if (double.TryParse(tempNode.InnerText, NumberStyles.Float, CultureInfo.InvariantCulture, out var temperature))
+                    foreach (XmlNode structNode in structs)
                     {
-                        result[cityName] = temperature;
+                        var cityNode = structNode.SelectSingleNode("member[name='city']/value | member[@name='city']/value");
+                        var tempNode = structNode.SelectSingleNode("member[name='temperature']/value | member[@name='temperature']/value");
+                        if (cityNode == null || tempNode == null)
+                            continue;
+
+                        var cityName = cityNode.InnerText;
+                        if (double.TryParse(tempNode.InnerText, NumberStyles.Float, CultureInfo.InvariantCulture, out var temperature))
+                        {
+                            result[cityName] = temperature;
+                        }
+                    }
+                }
+                else
+                {
+                    // Fallback: try to parse a single value
+                    var valueNode = doc.SelectSingleNode("/methodResponse/params/param/value");
+                    if (valueNode != null && double.TryParse(valueNode.InnerText, NumberStyles.Float, CultureInfo.InvariantCulture, out var temperature))
+                    {
+                        result["Unknown"] = temperature; // Use a default key if city is not provided
                     }
                 }
             }

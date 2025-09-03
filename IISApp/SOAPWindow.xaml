@@ -25,6 +25,12 @@
         <Button x:Name="SendSOAPRequestButton" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Content="Send SOAP Request" Margin="5" Click="SendSOAPRequestButton_Click" />
 
 
-        <ListBox x:Name="PlayersListBox" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="5" />
+        <TextBox x:Name="PlayersTextBox"
+                 Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="5"
+                 IsReadOnly="True"
+                 TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto"
+                 FontFamily="Consolas"
+                 FontSize="12" />
     </Grid>
 </Window>

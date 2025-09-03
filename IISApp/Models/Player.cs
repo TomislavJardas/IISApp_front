@@ -7,5 +7,10 @@ namespace IISApp.Models
         public string? Team { get; set; }
         public string? Season { get; set; }
         public double Points { get; set; }
+
+        public override string? ToString()
+        {
+            return $"Id: {Id}, Name: {Name}, Team: {Team}, Season: {Season}, Points: {Points}";
+        }
     }
 }

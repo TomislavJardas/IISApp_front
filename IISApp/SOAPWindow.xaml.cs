@@ -23,7 +23,8 @@ namespace IISApp
             try
             {
                 var players = await _soap.SearchPlayersAsync(searchTerm);
-                PlayersListBox.ItemsSource = players;
+                // FIX: Use p.ToString() instead of p.ToString to get the string representation.
+                PlayersTextBox.Text = string.Join(Environment.NewLine, players.Select(p => p.ToString()));
             }
             catch (Exception ex)
             {

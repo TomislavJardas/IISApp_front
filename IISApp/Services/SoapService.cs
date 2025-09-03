@@ -41,34 +41,39 @@ namespace IISApp.Services
             var list = new List<Player>();
             var doc = new XmlDocument();
             doc.LoadXml(xml);
-            var nodes = doc.GetElementsByTagName("Player");
-            foreach (XmlNode node in nodes)
+
+            // Find all elements with local-name 'Player' regardless of namespace
+            var nodes = doc.SelectNodes("//*[local-name()='Player']");
+            if (nodes != null)
             {
-                var player = new Player();
-                foreach (XmlNode child in node.ChildNodes)
+                foreach (XmlNode node in nodes)
                 {
-                    switch (child.Name.ToLower())
+                    var player = new Player();
+                    foreach (XmlNode child in node.ChildNodes)
                     {
-                        case "id":
-                            if (int.TryParse(child.InnerText, out var id))
-                                player.Id = id;
-                            break;
-                        case "name":
-                            player.Name = child.InnerText;
-                            break;
-                        case "team":
-                            player.Team = child.InnerText;
-                            break;
-                        case "season":
-                            player.Season = child.InnerText;
-                            break;
-                        case "points":
-                            if (double.TryParse(child.InnerText, out var p))
-                                player.Points = p;
-                            break;
+                        switch (child.LocalName.ToLower())
+                        {
+                            case "id":
+                                if (int.TryParse(child.InnerText, out var id))
+                                    player.Id = id;
+                                break;
+                            case "name":
+                                player.Name = child.InnerText;
+                                break;
+                            case "team":
+                                player.Team = child.InnerText;
+                                break;
+                            case "season":
+                                player.Season = child.InnerText;
+                                break;
+                            case "points":
+                                if (double.TryParse(child.InnerText, out var p))
+                                    player.Points = p;
+                                break;
+                        }
                     }
+                    list.Add(player);
                 }
-                list.Add(player);
             }
             return list.ToArray();
         }
