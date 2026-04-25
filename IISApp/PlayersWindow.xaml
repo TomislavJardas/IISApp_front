@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Players" Height="500" Width="800">
+        Title="Players" Height="560" Width="860">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -21,8 +21,8 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Label Grid.Row="0" Grid.Column="0" Content="Id:" Margin="5"/>
-        <TextBox x:Name="IdTextBox" Grid.Row="0" Grid.Column="1" Margin="5"/>
+        <Label Grid.Row="0" Grid.Column="0" Content="Record Id:" Margin="5"/>
+        <TextBox x:Name="IdTextBox" Grid.Row="0" Grid.Column="1" Margin="5" IsReadOnly="True"/>
 
         <Label Grid.Row="1" Grid.Column="0" Content="Name:" Margin="5"/>
         <TextBox x:Name="NameTextBox" Grid.Row="1" Grid.Column="1" Margin="5"/>
@@ -42,12 +42,19 @@
                 <ComboBoxItem Content="XSD" IsSelected="True"/>
                 <ComboBoxItem Content="RNG"/>
             </ComboBox>
-            <Button Content="Validate" Margin="5" Click="ValidateButton_Click"/>
-            <Button Content="Save" Margin="5" Click="SaveButton_Click"/>
-            <Button Content="Delete" Margin="5" Click="DeleteButton_Click"/>
+            <Button Content="Validate (uses save endpoint)" Margin="5" Click="ValidateButton_Click"/>
+            <Button x:Name="SaveButton" Content="Save" Margin="5" Click="SaveButton_Click"/>
+            <Button x:Name="DeleteButton" Content="Delete" Margin="5" Click="DeleteButton_Click"/>
             <Button Content="Load All" Margin="5" Click="LoadAllButton_Click"/>
+            <Button Content="New" Margin="5" Click="NewButton_Click"/>
+            <Button Content="Logout" Margin="5" Click="LogoutButton_Click"/>
         </StackPanel>
 
-        <ListBox x:Name="PlayersListBox" Grid.Row="7" Grid.ColumnSpan="2" Margin="5" />
+        <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="5">
+            <TextBlock x:Name="AccessModeTextBlock" FontWeight="Bold" Margin="0,0,20,0" />
+            <TextBlock x:Name="StatusTextBlock" />
+        </StackPanel>
+
+        <ListBox x:Name="PlayersListBox" Grid.Row="7" Grid.ColumnSpan="2" Margin="5" SelectionChanged="PlayersListBox_SelectionChanged" />
     </Grid>
 </Window>

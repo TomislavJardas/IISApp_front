@@ -4,47 +4,53 @@ using IISApp.Services;
 
 namespace IISApp
 {
-    /// <summary>
-    /// Interaction logic for LoginWindow.xaml
-    /// </summary>
     public partial class LoginWindow : Window
     {
         private readonly ApiService _api;
         private readonly ValidationService _validator;
+        private readonly PermissionService _permissionService;
 
-        public LoginWindow(ApiService api, ValidationService validator)
+        public LoginWindow(ApiService api, ValidationService validator, PermissionService permissionService)
         {
             InitializeComponent();
             _api = api;
             _validator = validator;
+            _permissionService = permissionService;
         }
-        // Add this property to the LoginWindow class to fix CS0103
-        public string AccessToken { get; private set; }
+
         private async void LoginButton_Click(object sender, RoutedEventArgs e)
         {
-            string username = UsernameTextBox.Text.Trim();
-            string password = PasswordBox.Password.Trim();
+            var username = UsernameTextBox.Text.Trim();
+            var password = PasswordBox.Password.Trim();
 
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                LoginStatusTextBlock.Text = "Enter username and password.";
+                return;
+            }
+
+            LoginButton.IsEnabled = false;
             try
             {
-                // ApiService.LoginAsync returns a bool, not a token string
-                bool loginSuccess = await _api.LoginAsync(username, password);
-                if (loginSuccess)
+                var loginSuccess = await _api.LoginAsync(username, password);
+                if (!loginSuccess)
                 {
-                    AccessToken = _api.AccessToken?.Trim(); // Get token from ApiService property
-                    LoginStatusTextBlock.Text = "Login successful!";
-                    PlayersWindow playersWindow = new PlayersWindow(_api, _validator);
-                    playersWindow.Show();
-                    this.Close();
+                    LoginStatusTextBlock.Text = "Login failed. Check credentials and backend status.";
+                    return;
                 }
-                else
-                {
-                    LoginStatusTextBlock.Text = "Login failed.";
-                }
+
+                LoginStatusTextBlock.Text = "Login successful.";
+                var playersWindow = new PlayersWindow(_api, _validator, _permissionService);
+                playersWindow.Show();
+                Close();
             }
             catch (Exception ex)
             {
                 LoginStatusTextBlock.Text = $"Login failed: {ex.Message}";
+            }
+            finally
+            {
+                LoginButton.IsEnabled = true;
             }
         }
     }
