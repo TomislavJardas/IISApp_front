@@ -40,7 +40,7 @@
                 <ComboBoxItem Content="XSD" IsSelected="True"/>
                 <ComboBoxItem Content="RNG"/>
             </ComboBox>
-            <Button x:Name="ValidateButton" Content="Validate" Margin="5" Click="ValidateButton_Click" />
+            <Button x:Name="ValidateButton" Content="Validate (uses save endpoint)" Margin="5" Click="ValidateButton_Click" />
             <Button x:Name="ValidateAndSaveButton" Content="Validate &amp; Save" Margin="5" Click="ValidateAndSaveButton_Click" />
         </StackPanel>
 

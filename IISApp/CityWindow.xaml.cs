@@ -1,16 +1,10 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using IISApp.Services;
-using System.Xml;
-using System.IO;
 
 namespace IISApp
 {
-    /// <summary>
-    /// Interaction logic for CityWindow.xaml
-    /// </summary>
     public partial class CityWindow : Window
     {
         private readonly WeatherServiceClient _client;
@@ -18,46 +12,33 @@ namespace IISApp
         public CityWindow()
         {
             InitializeComponent();
-            _client = new WeatherServiceClient("http://localhost:9090");
+            _client = new WeatherServiceClient(AppConfig.WeatherServiceUrl);
         }
 
         private async void SendXmlRpcRequestButton_Click(object sender, RoutedEventArgs e)
         {
-            string cityName = CityNameTextBox.Text.Trim();
+            var cityName = CityNameTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(cityName))
+            {
+                FormattedXmlTextBox.Text = "Please enter a city name.";
+                return;
+            }
+
             try
             {
                 var results = await _client.GetTemperaturesAsync(cityName);
-                // Convert Dictionary<string, double> to formatted XML string
-                string formattedXml = FormatDictionaryAsXml(results);
-                FormattedXmlTextBox.Text = formattedXml;
+                if (results.Count == 0)
+                {
+                    FormattedXmlTextBox.Text = "No weather results returned.";
+                    return;
+                }
+
+                FormattedXmlTextBox.Text = string.Join(Environment.NewLine, results.Select(r => r.ToString()));
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                FormattedXmlTextBox.Text = $"Weather service error: {ex.Message}";
             }
         }
-
-        // Helper method to convert Dictionary<string, double> to XML string
-        private string FormatDictionaryAsXml(System.Collections.Generic.Dictionary<string, double> dict)
-        {
-            var doc = new XmlDocument();
-            var root = doc.CreateElement("Temperatures");
-            doc.AppendChild(root);
-
-            foreach (var kvp in dict)
-            {
-                var cityElem = doc.CreateElement("City");
-                cityElem.InnerText = kvp.Value.ToString();
-                root.AppendChild(cityElem);
-            }
-
-            using (var stringWriter = new StringWriter())
-            using (var xmlTextWriter = new XmlTextWriter(stringWriter) { Formatting = Formatting.Indented })
-            {
-                doc.WriteTo(xmlTextWriter);
-                return stringWriter.ToString();
-            }
-        }
-
     }
 }
