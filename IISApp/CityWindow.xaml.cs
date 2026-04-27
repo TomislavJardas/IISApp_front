@@ -1,16 +1,10 @@
-﻿using System;
+using System;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using IISApp.Services;
-using System.Xml;
-using System.IO;
 
 namespace IISApp
 {
-    /// <summary>
-    /// Interaction logic for CityWindow.xaml
-    /// </summary>
     public partial class CityWindow : Window
     {
         private readonly WeatherServiceClient _client;
@@ -18,46 +12,53 @@ namespace IISApp
         public CityWindow()
         {
             InitializeComponent();
-            _client = new WeatherServiceClient("http://localhost:9090");
+            _client = new WeatherServiceClient(AppConfig.WeatherServiceUrl);
+            StatusTextBlock.Text = $"Weather server URL: {AppConfig.WeatherServiceUrl}";
         }
 
         private async void SendXmlRpcRequestButton_Click(object sender, RoutedEventArgs e)
         {
-            string cityName = CityNameTextBox.Text.Trim();
+            var cityName = CityNameTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(cityName))
+            {
+                StatusTextBlock.Text = "Please enter a city name.";
+                FormattedXmlTextBox.Text = string.Empty;
+                return;
+            }
+
+            SendXmlRpcRequestButton.IsEnabled = false;
+            StatusTextBlock.Text = "Loading weather data...";
+
             try
             {
                 var results = await _client.GetTemperaturesAsync(cityName);
-                // Convert Dictionary<string, double> to formatted XML string
-                string formattedXml = FormatDictionaryAsXml(results);
-                FormattedXmlTextBox.Text = formattedXml;
+                if (results.Count == 0)
+                {
+                    StatusTextBlock.Text = "No weather results returned.";
+                    FormattedXmlTextBox.Text = "No data was returned by the weather service.";
+                    return;
+                }
+
+                FormattedXmlTextBox.Text = string.Join(Environment.NewLine, results.Select(r => r.ToDisplayText()));
+                StatusTextBlock.Text = results.Any(r => r.IsError)
+                    ? "Weather service responded with an error message."
+                    : $"Received {results.Count} result(s).";
+            }
+            catch (WeatherServiceConnectionException ex)
+            {
+                StatusTextBlock.Text = "Cannot connect to weather XML-RPC service.";
+                FormattedXmlTextBox.Text = $"{ex.Message}{Environment.NewLine}{Environment.NewLine}" +
+                                           "Tip: Start WeatherServer.java separately (it is not started by Spring Boot).";
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                StatusTextBlock.Text = "Unexpected weather client error.";
+                FormattedXmlTextBox.Text = ex.Message;
+            }
+            finally
+            {
+                SendXmlRpcRequestButton.IsEnabled = true;
             }
         }
-
-        // Helper method to convert Dictionary<string, double> to XML string
-        private string FormatDictionaryAsXml(System.Collections.Generic.Dictionary<string, double> dict)
-        {
-            var doc = new XmlDocument();
-            var root = doc.CreateElement("Temperatures");
-            doc.AppendChild(root);
-
-            foreach (var kvp in dict)
-            {
-                var cityElem = doc.CreateElement("City");
-                cityElem.InnerText = kvp.Value.ToString();
-                root.AppendChild(cityElem);
-            }
-
-            using (var stringWriter = new StringWriter())
-            using (var xmlTextWriter = new XmlTextWriter(stringWriter) { Formatting = Formatting.Indented })
-            {
-                doc.WriteTo(xmlTextWriter);
-                return stringWriter.ToString();
-            }
-        }
-
     }
 }

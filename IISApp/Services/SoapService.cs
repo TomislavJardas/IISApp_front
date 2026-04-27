@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
+using System.Security;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
@@ -19,62 +21,79 @@ namespace IISApp.Services
 
         public async Task<Player[]> SearchPlayersAsync(string searchTerm)
         {
-            string soapBody = $"""
-            <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://example.com/players">
-              <SOAP-ENV:Header/>
-              <SOAP-ENV:Body>
-                <web:SearchRequest>
-                  <web:SearchTerm>{searchTerm}</web:SearchTerm>
-                </web:SearchRequest>
-              </SOAP-ENV:Body>
-            </SOAP-ENV:Envelope>
-            """;
+            var safeTerm = SecurityElement.Escape(searchTerm) ?? string.Empty;
+            var soapBody = $"""
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:pl="http://example.com/players">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <pl:SearchRequest>
+      <pl:SearchTerm>{safeTerm}</pl:SearchTerm>
+    </pl:SearchRequest>
+  </soapenv:Body>
+</soapenv:Envelope>
+""";
 
-            var content = new StringContent(soapBody, Encoding.UTF8, "text/xml");
-            var response = await _http.PostAsync("/ws/players", content);
+            using var content = new StringContent(soapBody, Encoding.UTF8, "text/xml");
+            content.Headers.Add("SOAPAction", "");
+
+            var response = await SendSoapWithFallbackAsync(content);
             var xml = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"SOAP request failed ({(int)response.StatusCode}): {xml}");
+            }
+
             return ParsePlayers(xml);
         }
 
-        private Player[] ParsePlayers(string xml)
+        private async Task<HttpResponseMessage> SendSoapWithFallbackAsync(StringContent content)
         {
-            var list = new List<Player>();
+            var endpoints = new[] { "/ws", "/ws/players" };
+            HttpResponseMessage? last = null;
+
+            foreach (var endpoint in endpoints)
+            {
+                using var retryContent = new StringContent(await content.ReadAsStringAsync(), Encoding.UTF8, "text/xml");
+                retryContent.Headers.Add("SOAPAction", "");
+                last = await _http.PostAsync(endpoint, retryContent);
+                if (last.IsSuccessStatusCode || last.StatusCode != System.Net.HttpStatusCode.NotFound)
+                {
+                    return last;
+                }
+            }
+
+            return last ?? await _http.PostAsync("/ws", content);
+        }
+
+        private static Player[] ParsePlayers(string xml)
+        {
             var doc = new XmlDocument();
             doc.LoadXml(xml);
 
-            // Find all elements with local-name 'Player' regardless of namespace
-            var nodes = doc.SelectNodes("//*[local-name()='Player']");
-            if (nodes != null)
+            var faultNode = doc.SelectSingleNode("//*[local-name()='Fault']");
+            if (faultNode != null)
             {
-                foreach (XmlNode node in nodes)
-                {
-                    var player = new Player();
-                    foreach (XmlNode child in node.ChildNodes)
-                    {
-                        switch (child.LocalName.ToLower())
-                        {
-                            case "id":
-                                if (int.TryParse(child.InnerText, out var id))
-                                    player.Id = id;
-                                break;
-                            case "name":
-                                player.Name = child.InnerText;
-                                break;
-                            case "team":
-                                player.Team = child.InnerText;
-                                break;
-                            case "season":
-                                player.Season = child.InnerText;
-                                break;
-                            case "points":
-                                if (double.TryParse(child.InnerText, out var p))
-                                    player.Points = p;
-                                break;
-                        }
-                    }
-                    list.Add(player);
-                }
+                throw new InvalidOperationException($"SOAP fault: {faultNode.InnerText.Trim()}");
             }
+
+            var list = new List<Player>();
+            var nodes = doc.SelectNodes("//*[local-name()='Body']//*[local-name()='Player']");
+            if (nodes == null)
+            {
+                return Array.Empty<Player>();
+            }
+
+            foreach (XmlNode node in nodes)
+            {
+                list.Add(new Player
+                {
+                    Name = node.SelectSingleNode("./*[local-name()='name']")?.InnerText,
+                    Team = node.SelectSingleNode("./*[local-name()='team']")?.InnerText,
+                    Season = int.TryParse(node.SelectSingleNode("./*[local-name()='season']")?.InnerText, out var season) ? season : 0,
+                    Points = double.TryParse(node.SelectSingleNode("./*[local-name()='points']")?.InnerText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points) ? points : 0
+                });
+            }
+
             return list.ToArray();
         }
     }

@@ -15,12 +15,12 @@ namespace IISApp.Services
 
         public async Task<string> ValidateAndSaveAsync(string xml, string schema)
         {
-            _api.ApplyHeaders();
-            var url = "/validateAndSaveXml";
-            var content = new StringContent(xml, Encoding.UTF8, "application/xml");
-            var response = await _api.HttpClient.PostAsync(url, content);
-            return await response.Content.ReadAsStringAsync();
+            // The current backend supports only validate+save via /validateAndSaveXml.
+            // Schema is left in the signature because the UI still lets the user choose for demo parity.
+            using var content = new StringContent(xml, Encoding.UTF8, "application/xml");
+            var response = await _api.HttpClient.PostAsync("/validateAndSaveXml", content);
+            var body = await response.Content.ReadAsStringAsync();
+            return response.IsSuccessStatusCode ? body : $"Validation/save failed ({(int)response.StatusCode}): {body}";
         }
     }
 }
-
