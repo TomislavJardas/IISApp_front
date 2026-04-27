@@ -3,41 +3,42 @@ using IISApp.Services;
 
 namespace IISApp
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private readonly ApiService _api;
         private readonly ValidationService _validator;
+        private readonly PermissionService _permissionService;
 
         public MainWindow()
         {
             InitializeComponent();
-            _api = new ApiService("http://localhost:8080");
+            _api = new ApiService(AppConfig.ApiBaseUrl);
             _validator = new ValidationService(_api);
+            _permissionService = PermissionService.FromConfiguration();
         }
+
         private void OpenLoginWindowButton_Click(object sender, RoutedEventArgs e)
         {
-            LoginWindow loginWindow = new LoginWindow(_api, _validator);
+            var loginWindow = new LoginWindow(_api, _validator, _permissionService);
             loginWindow.Show();
         }
 
         private void OpenPlayersWindowButton_Click(object sender, RoutedEventArgs e)
         {
-            PlayersWindow playersWindow = new PlayersWindow(_api, _validator);
+            var playersWindow = new PlayersWindow(_api, _validator, _permissionService);
             playersWindow.Show();
         }
 
         private void OpenSOAPWindowButton_Click(object sender, RoutedEventArgs e)
         {
-            SOAPWindow soapWindow = new SOAPWindow();
+            var soapWindow = new SOAPWindow();
             soapWindow.Show();
         }
+
         private void OpenXRCPWindowButton_Click(object sender, RoutedEventArgs e)
         {
-            CityWindow soapWindow = new CityWindow();
-            soapWindow.Show();
+            var cityWindow = new CityWindow();
+            cityWindow.Show();
         }
     }
 }

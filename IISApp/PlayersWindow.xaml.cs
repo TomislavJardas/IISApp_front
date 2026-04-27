@@ -1,6 +1,7 @@
 using System;
-using System.Text;
 using System.Windows;
+using System.Windows.Controls;
+using System.Xml.Linq;
 using IISApp.Models;
 using IISApp.Services;
 
@@ -10,87 +11,253 @@ namespace IISApp
     {
         private readonly ApiService _api;
         private readonly ValidationService _validator;
+        private readonly PermissionService _permissions;
 
-        public PlayersWindow(ApiService api, ValidationService validator)
+        public PlayersWindow(ApiService api, ValidationService validator, PermissionService permissions)
         {
             InitializeComponent();
             _api = api;
             _validator = validator;
+            _permissions = permissions;
+
+            _api.SessionExpired += OnSessionExpired;
+            ConfigurePermissions();
+            Loaded += (_, _) => _ = LoadPlayersAsync();
         }
 
-        private Player BuildPlayer(bool includeId = true)
+        private void ConfigurePermissions()
+        {
+            var isReadOnly = !_permissions.CanMutatePlayers;
+            SaveButton.IsEnabled = !isReadOnly;
+            DeleteButton.IsEnabled = !isReadOnly;
+            AccessModeTextBlock.Text = isReadOnly ? "Mode: Read-only" : "Mode: Full-access";
+        }
+
+        private Player BuildPlayerFromForm()
         {
             return new Player
             {
-                Id = int.TryParse(IdTextBox.Text, out var id) ? id : 0,
-                Name = NameTextBox.Text,
-                Team = TeamTextBox.Text,
-                Season = SeasonTextBox.Text,
-                Points = double.TryParse(PointsTextBox.Text, out var p) ? p : 0
+                Id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim(),
+                Name = NameTextBox.Text.Trim(),
+                Team = TeamTextBox.Text.Trim(),
+                Season = int.TryParse(SeasonTextBox.Text, out var season) ? season : 0,
+                Points = double.TryParse(PointsTextBox.Text, out var points) ? points : 0
             };
+        }
+
+        private void PopulateForm(Player player)
+        {
+            IdTextBox.Text = player.Id ?? string.Empty;
+            NameTextBox.Text = player.Name ?? string.Empty;
+            TeamTextBox.Text = player.Team ?? string.Empty;
+            SeasonTextBox.Text = player.Season.ToString();
+            PointsTextBox.Text = player.Points.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private void ClearForm()
+        {
+            IdTextBox.Text = string.Empty;
+            NameTextBox.Text = string.Empty;
+            TeamTextBox.Text = string.Empty;
+            SeasonTextBox.Text = string.Empty;
+            PointsTextBox.Text = string.Empty;
+            PlayersListBox.SelectedItem = null;
         }
 
         private string BuildPlayerXml(Player player)
         {
-            var sb = new StringBuilder();
-            sb.Append("<Players><Player>");
-            sb.Append($"<name>{player.Name}</name>");
-            sb.Append($"<team>{player.Team}</team>");
-            sb.Append($"<season>{player.Season}</season>");
-            sb.Append($"<points>{player.Points}</points>");
-            sb.Append("</Player></Players>");
-            return sb.ToString();
+            var xml = new XElement("Players",
+                new XElement("Player",
+                    new XElement("name", player.Name ?? string.Empty),
+                    new XElement("team", player.Team ?? string.Empty),
+                    new XElement("season", player.Season),
+                    new XElement("points", player.Points.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+
+            return xml.ToString(SaveOptions.DisableFormatting);
         }
 
         private string GetSelectedSchema()
         {
-            if (SchemaComboBox.SelectedItem is System.Windows.Controls.ComboBoxItem item)
+            if (SchemaComboBox.SelectedItem is ComboBoxItem item)
+            {
                 return item.Content?.ToString()?.ToLowerInvariant() ?? "xsd";
+            }
+
             return "xsd";
+        }
+
+        private async System.Threading.Tasks.Task LoadPlayersAsync()
+        {
+            if (!_api.IsAuthenticated)
+            {
+                StatusTextBlock.Text = "Please login to load players.";
+                return;
+            }
+
+            var players = await _api.GetAllPlayersAsync();
+            PlayersListBox.ItemsSource = players;
+            StatusTextBlock.Text = $"Loaded {players?.Length ?? 0} players.";
         }
 
         private async void LoadAllButton_Click(object sender, RoutedEventArgs e)
         {
-            var players = await _api.GetAllPlayersAsync();
-            PlayersListBox.ItemsSource = players;
+            await LoadPlayersAsync();
+        }
+
+        private async void LoadByIdButton_Click(object sender, RoutedEventArgs e)
+        {
+            var recordId = IdTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(recordId))
+            {
+                MessageBox.Show("Enter a record id first.");
+                return;
+            }
+
+            var player = await _api.GetPlayerByIdAsync(recordId);
+            if (player is null)
+            {
+                MessageBox.Show("Player not found.");
+                return;
+            }
+
+            PopulateForm(player);
+            StatusTextBlock.Text = $"Loaded player {recordId}.";
         }
 
         private async void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            var player = BuildPlayer();
-            var xml = BuildPlayerXml(player);
-            var schema = GetSelectedSchema();
-            if (player.Id > 0)
+            if (!_permissions.CanMutatePlayers)
             {
-                var success = await _api.UpdatePlayerAsync(player);
-                MessageBox.Show(success ? "Saved" : "Save failed");
-            }
-            else
-            {
-                var result = await _validator.ValidateAndSaveAsync(xml, schema);
-                MessageBox.Show(result, "Validation result");
+                MessageBox.Show("Read-only mode is enabled. Save is disabled.");
+                return;
             }
 
-            LoadAllButton_Click(sender, e);
+            if (!_api.IsAuthenticated)
+            {
+                MessageBox.Show("Please login first.");
+                return;
+            }
+
+            var player = BuildPlayerFromForm();
+            if (string.IsNullOrWhiteSpace(player.Name) || string.IsNullOrWhiteSpace(player.Team) || player.Season <= 0)
+            {
+                MessageBox.Show("Name, team, and season are required.");
+                return;
+            }
+
+            try
+            {
+                Player? result;
+                if (string.IsNullOrWhiteSpace(player.Id))
+                {
+                    result = await _api.CreatePlayerAsync(player);
+                    MessageBox.Show(result is null ? "Create failed." : "Player created.");
+                }
+                else
+                {
+                    result = await _api.UpdatePlayerAsync(player);
+                    MessageBox.Show(result is null ? "Update failed." : "Player updated.");
+                }
+
+                await LoadPlayersAsync();
+                if (result is not null)
+                {
+                    PopulateForm(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Save failed: {ex.Message}");
+            }
         }
 
         private async void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            if (int.TryParse(IdTextBox.Text, out var id) && id > 0)
+            if (!_permissions.CanMutatePlayers)
             {
-                var success = await _api.DeletePlayerAsync(id);
-                MessageBox.Show(success ? "Deleted" : "Delete failed");
-                LoadAllButton_Click(sender, e);
+                MessageBox.Show("Read-only mode is enabled. Delete is disabled.");
+                return;
+            }
+
+            var recordId = IdTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(recordId))
+            {
+                MessageBox.Show("Select a player first.");
+                return;
+            }
+
+            var confirm = MessageBox.Show($"Delete player {recordId}?", "Confirm delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            var success = await _api.DeletePlayerAsync(recordId);
+            MessageBox.Show(success ? "Player deleted." : "Delete failed.");
+
+            if (success)
+            {
+                ClearForm();
+                await LoadPlayersAsync();
             }
         }
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
         {
-            var player = BuildPlayer();
+            var player = BuildPlayerFromForm();
             var xml = BuildPlayerXml(player);
             var schema = GetSelectedSchema();
             var result = await _validator.ValidateAndSaveAsync(xml, schema);
-            MessageBox.Show(result, "Validation result");
+            MessageBox.Show(result, "Validate & Save result");
+        }
+
+        private async void PlayersListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (PlayersListBox.SelectedItem is not Player selectedPlayer)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(selectedPlayer.Id))
+            {
+                PopulateForm(selectedPlayer);
+                return;
+            }
+
+            var detailed = await _api.GetPlayerByIdAsync(selectedPlayer.Id);
+            PopulateForm(detailed ?? selectedPlayer);
+        }
+
+        private void NewButton_Click(object sender, RoutedEventArgs e)
+        {
+            ClearForm();
+            StatusTextBlock.Text = "Creating a new player.";
+        }
+
+        private void LogoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            _api.Logout();
+            MessageBox.Show("Logged out.");
+            var loginWindow = new LoginWindow(_api, _validator, _permissions);
+            loginWindow.Show();
+            Close();
+        }
+
+        private void OnSessionExpired()
+        {
+            Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show("Session expired. Please login again.");
+                var loginWindow = new LoginWindow(_api, _validator, _permissions);
+                loginWindow.Show();
+                Close();
+            });
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _api.SessionExpired -= OnSessionExpired;
+            base.OnClosed(e);
         }
     }
 }
