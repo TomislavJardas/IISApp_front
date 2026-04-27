@@ -22,7 +22,7 @@
         </Grid.ColumnDefinitions>
 
         <Label Grid.Row="0" Grid.Column="0" Content="Record Id:" Margin="5"/>
-        <TextBox x:Name="IdTextBox" Grid.Row="0" Grid.Column="1" Margin="5" IsReadOnly="True"/>
+        <TextBox x:Name="IdTextBox" Grid.Row="0" Grid.Column="1" Margin="5" />
 
         <Label Grid.Row="1" Grid.Column="0" Content="Name:" Margin="5"/>
         <TextBox x:Name="NameTextBox" Grid.Row="1" Grid.Column="1" Margin="5"/>

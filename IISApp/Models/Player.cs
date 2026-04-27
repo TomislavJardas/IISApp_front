@@ -8,6 +8,13 @@ namespace IISApp.Models
         [JsonPropertyName("id")]
         public string? Id { get; set; }
 
+        [JsonPropertyName("recordId")]
+        public string? RecordId
+        {
+            get => Id;
+            set => Id = value;
+        }
+
         [JsonPropertyName("name")]
         public string? Name { get; set; }
 
