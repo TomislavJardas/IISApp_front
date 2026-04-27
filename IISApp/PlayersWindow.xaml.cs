@@ -104,26 +104,6 @@ namespace IISApp
             await LoadPlayersAsync();
         }
 
-        private async void LoadByIdButton_Click(object sender, RoutedEventArgs e)
-        {
-            var recordId = IdTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(recordId))
-            {
-                MessageBox.Show("Enter a record id first.");
-                return;
-            }
-
-            var player = await _api.GetPlayerByIdAsync(recordId);
-            if (player is null)
-            {
-                MessageBox.Show("Player not found.");
-                return;
-            }
-
-            PopulateForm(player);
-            StatusTextBlock.Text = $"Loaded player {recordId}.";
-        }
-
         private async void SaveButton_Click(object sender, RoutedEventArgs e)
         {
             if (!_permissions.CanMutatePlayers)
