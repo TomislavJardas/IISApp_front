@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Globalization;
 using System.Reflection;
 using IISApp.Services;
 using Xunit;
@@ -8,29 +7,79 @@ namespace IISApp.Tests
 {
     public class WeatherServiceClientTests
     {
-        [Theory]
-        [InlineData("en-US")]
-        [InlineData("fr-FR")]
-        public void ParseTemperatures_UsesInvariantCulture(string culture)
+        [Fact]
+        public void ParseTemperatures_ParsesMultipleCityRows()
         {
-            var xml = @"<?xml version=\"1.0\"?><methodResponse><params><param><value><array><data><value><struct>" +
-                      @"<member><name>city</name><value><string>London</string></value></member>" +
-                      @"<member><name>temperature</name><value><double>21.3</double></value></member>" +
-                      @"</struct></value></data></array></value></param></params></methodResponse>";
+            var xml = "<?xml version=\"1.0\"?><methodResponse><params><param><value><array><data>" +
+                      "<value><string>London: 21.3</string></value>" +
+                      "<value><string>Paris: 18.5</string></value>" +
+                      "</data></array></value></param></params></methodResponse>";
 
+            var result = Parse(xml);
+
+            Assert.Collection(result,
+                r =>
+                {
+                    Assert.Equal("London", r.City);
+                    Assert.Equal("21.3", r.Temperature);
+                    Assert.False(r.IsError);
+                },
+                r =>
+                {
+                    Assert.Equal("Paris", r.City);
+                    Assert.Equal("18.5", r.Temperature);
+                    Assert.False(r.IsError);
+                });
+        }
+
+        [Fact]
+        public void ParseTemperatures_ParsesCityNotFoundMessage()
+        {
+            var xml = "<?xml version=\"1.0\"?><methodResponse><params><param><value><array><data>" +
+                      "<value><string>City not found</string></value>" +
+                      "</data></array></value></param></params></methodResponse>";
+
+            var result = Parse(xml);
+
+            Assert.Single(result);
+            Assert.Equal("City not found", result[0].Message);
+            Assert.False(result[0].IsError);
+        }
+
+        [Fact]
+        public void ParseTemperatures_ParsesBackendErrorMessage()
+        {
+            var xml = "<?xml version=\"1.0\"?><methodResponse><params><param><value><array><data>" +
+                      "<value><string>Error retrieving temperature: timeout</string></value>" +
+                      "</data></array></value></param></params></methodResponse>";
+
+            var result = Parse(xml);
+
+            Assert.Single(result);
+            Assert.True(result[0].IsError);
+            Assert.Contains("Error retrieving temperature", result[0].Message);
+        }
+
+        [Fact]
+        public void ParseTemperatures_ParsesXmlRpcFault()
+        {
+            var xml = "<?xml version=\"1.0\"?><methodResponse><fault><value><struct>" +
+                      "<member><name>faultCode</name><value><int>4</int></value></member>" +
+                      "<member><name>faultString</name><value><string>Too many params.</string></value></member>" +
+                      "</struct></value></fault></methodResponse>";
+
+            var result = Parse(xml);
+
+            Assert.Single(result);
+            Assert.True(result[0].IsError);
+            Assert.Contains("Too many params", result[0].Message);
+        }
+
+        private static List<WeatherResult> Parse(string xml)
+        {
             var client = new WeatherServiceClient("http://localhost");
             var method = typeof(WeatherServiceClient).GetMethod("ParseTemperatures", BindingFlags.NonPublic | BindingFlags.Instance)!;
-            var originalCulture = CultureInfo.CurrentCulture;
-            try
-            {
-                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
-                var result = (Dictionary<string, double>)method.Invoke(client, new object[] { xml })!;
-                Assert.Equal(21.3, result["London"]);
-            }
-            finally
-            {
-                CultureInfo.CurrentCulture = originalCulture;
-            }
+            return (List<WeatherResult>)method.Invoke(client, new object[] { xml })!;
         }
     }
 }

@@ -1,148 +1,332 @@
 using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Xml.Linq;
-using System.Linq;
+using IISApp.Models;
 
 namespace IISApp.Services
 {
     public class ApiService
     {
         private readonly HttpClient _http;
-        public HttpClient HttpClient => _http;
-
-        public string? AccessToken { get; private set; }
-        public string? RefreshToken { get; private set; }
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         public ApiService(string baseUrl)
         {
             _http = new HttpClient { BaseAddress = new Uri(baseUrl) };
         }
 
+        public HttpClient HttpClient => _http;
+
+        public string? AccessToken { get; private set; }
+        public string? RefreshToken { get; private set; }
+
+        public bool IsAuthenticated => !string.IsNullOrWhiteSpace(AccessToken);
+
+        public event Action? SessionExpired;
+
         public async Task<bool> LoginAsync(string username, string password)
         {
             var payload = new { username, password };
-            var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-            var response = await _http.PostAsync("/api/auth/login", content);
+            var response = await SendAsync(HttpMethod.Post, "/api/auth/login", payload, requiresAuth: false);
+
             if (!response.IsSuccessStatusCode)
+            {
+                Logout();
                 return false;
+            }
 
+            var tokenResponse = await DeserializeAsync<TokenResponse>(response);
+            if (tokenResponse is null || string.IsNullOrWhiteSpace(tokenResponse.AccessToken) || string.IsNullOrWhiteSpace(tokenResponse.RefreshToken))
+            {
+                Logout();
+                return false;
+            }
+
+            AccessToken = tokenResponse.AccessToken;
+            RefreshToken = tokenResponse.RefreshToken;
+            ApplyAuthorizationHeader();
+            return true;
+        }
+
+        public void Logout()
+        {
+            AccessToken = null;
+            RefreshToken = null;
+            _http.DefaultRequestHeaders.Authorization = null;
+        }
+
+        public async Task<Player[]?> GetAllPlayersAsync()
+        {
+            var response = await SendWithAutoRefreshAsync(HttpMethod.Get, "/api/players");
+            if (!response.IsSuccessStatusCode)
+            {
+                return Array.Empty<Player>();
+            }
+
+            return await DeserializePlayersAsync(response);
+        }
+
+        public async Task<Player?> GetPlayerByIdAsync(string recordId)
+        {
+            var response = await SendWithAutoRefreshAsync(HttpMethod.Get, $"/api/players/{Uri.EscapeDataString(recordId)}");
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            return await DeserializePlayerAsync(response);
+        }
+
+        public async Task<Player?> CreatePlayerAsync(Player player)
+        {
+            var payload = new
+            {
+                name = player.Name,
+                team = player.Team,
+                season = player.Season,
+                points = player.Points
+            };
+            var response = await SendWithAutoRefreshAsync(HttpMethod.Post, "/api/players", payload);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            return await DeserializePlayerAsync(response);
+        }
+
+        public async Task<Player?> UpdatePlayerAsync(Player player)
+        {
+            if (string.IsNullOrWhiteSpace(player.Id))
+            {
+                throw new ArgumentException("Cannot update player without record id.", nameof(player));
+            }
+
+            var payload = new
+            {
+                name = player.Name,
+                team = player.Team,
+                season = player.Season,
+                points = player.Points
+            };
+            var response = await SendWithAutoRefreshAsync(HttpMethod.Patch, $"/api/players/{Uri.EscapeDataString(player.Id)}", payload);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            return await DeserializePlayerAsync(response);
+        }
+
+        public async Task<bool> DeletePlayerAsync(string recordId)
+        {
+            var response = await SendWithAutoRefreshAsync(HttpMethod.Delete, $"/api/players/{Uri.EscapeDataString(recordId)}");
+            return response.StatusCode == HttpStatusCode.NoContent || response.IsSuccessStatusCode;
+        }
+
+        private async Task<HttpResponseMessage> SendWithAutoRefreshAsync(HttpMethod method, string url, object? payload = null)
+        {
+            ApplyAuthorizationHeader();
+            var response = await SendAsync(method, url, payload);
+            if (response.StatusCode != HttpStatusCode.Unauthorized)
+            {
+                return response;
+            }
+
+            var refreshed = await TryRefreshTokenAsync();
+            if (!refreshed)
+            {
+                Logout();
+                SessionExpired?.Invoke();
+                return response;
+            }
+
+            return await SendAsync(method, url, payload);
+        }
+
+        private async Task<bool> TryRefreshTokenAsync()
+        {
+            if (string.IsNullOrWhiteSpace(RefreshToken))
+            {
+                return false;
+            }
+
+            var refreshPayload = new { refreshToken = RefreshToken };
+            var response = await SendAsync(HttpMethod.Post, "/api/auth/refresh", refreshPayload, requiresAuth: false);
+            if (!response.IsSuccessStatusCode)
+            {
+                return false;
+            }
+
+            var refreshedTokens = await DeserializeAsync<TokenResponse>(response);
+            if (refreshedTokens is null || string.IsNullOrWhiteSpace(refreshedTokens.AccessToken))
+            {
+                return false;
+            }
+
+            AccessToken = refreshedTokens.AccessToken;
+            RefreshToken = refreshedTokens.RefreshToken;
+            ApplyAuthorizationHeader();
+            return true;
+        }
+
+        private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string url, object? payload = null, bool requiresAuth = true)
+        {
+            using var request = new HttpRequestMessage(method, url);
+            if (payload is not null)
+            {
+                request.Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            }
+
+            if (requiresAuth && !string.IsNullOrWhiteSpace(AccessToken))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
+            }
+
+            return await _http.SendAsync(request);
+        }
+
+        private async Task<Player[]?> DeserializePlayersAsync(HttpResponseMessage response)
+        {
             var body = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return Array.Empty<Player>();
+            }
 
-            // Try to detect if the response is JSON
-            if (!string.IsNullOrWhiteSpace(body) && (body.TrimStart().StartsWith("{") || body.TrimStart().StartsWith("[")))
+            using var doc = JsonDocument.Parse(body);
+            if (doc.RootElement.ValueKind != JsonValueKind.Array)
             {
-                try
-                {
-                    using var doc = JsonDocument.Parse(body);
-                    AccessToken = doc.RootElement.GetProperty("accessToken").GetString();
-                    RefreshToken = doc.RootElement.TryGetProperty("refreshToken", out var refresh) ? refresh.GetString() : null;
-                }
-                catch (JsonException)
-                {
-                    AccessToken = null;
-                    RefreshToken = null;
-                    return false;
-                }
+                return Array.Empty<Player>();
             }
-            else
+
+            var players = new List<Player>();
+            foreach (var item in doc.RootElement.EnumerateArray())
             {
-                // Treat as plain JWT string
-                AccessToken = body.Trim().Trim('"');
-                RefreshToken = null;
+                players.Add(MapPlayer(item));
             }
-            return !string.IsNullOrEmpty(AccessToken);
+
+            return players.ToArray();
         }
 
-        public void ApplyHeaders()
+        private async Task<Player?> DeserializePlayerAsync(HttpResponseMessage response)
         {
-            if (!string.IsNullOrEmpty(AccessToken))
-            {
-                _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
-            }
-        }
-
-        public async Task<Models.Player?> GetPlayerByIdAsync(int id)
-        {
-            ApplyHeaders();
-            var response = await _http.GetAsync($"/api/players/{id}");
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            var xml = await response.Content.ReadAsStringAsync();
-            try
-            {
-                var doc = XDocument.Parse(xml);
-                var playerElement = doc.Descendants("Player").FirstOrDefault();
-                if (playerElement == null)
-                    return null;
-
-                return new Models.Player
-                {
-                    Id = (int?)playerElement.Element("id") ?? (int?)playerElement.Element("Id") ?? 0,
-                    Name = (string?)playerElement.Element("name") ?? (string?)playerElement.Element("Name"),
-                    Team = (string?)playerElement.Element("team") ?? (string?)playerElement.Element("Team"),
-                    Season = (string?)playerElement.Element("season") ?? (string?)playerElement.Element("Season"),
-                    Points = (double?)playerElement.Element("points") ?? (double?)playerElement.Element("Points") ?? 0
-                };
-            }
-            catch
+            var body = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(body))
             {
                 return null;
             }
+
+            using var doc = JsonDocument.Parse(body);
+            return doc.RootElement.ValueKind == JsonValueKind.Object ? MapPlayer(doc.RootElement) : null;
         }
 
-        public async Task<Models.Player[]?> GetAllPlayersAsync()
+        private static Player MapPlayer(JsonElement element)
         {
-            ApplyHeaders();
-            var response = await _http.GetAsync("/api/players");
-            if (!response.IsSuccessStatusCode)
-                return Array.Empty<Models.Player>();
-
-            var xml = await response.Content.ReadAsStringAsync();
-            try
+            return new Player
             {
-                var doc = XDocument.Parse(xml);
-                var players = doc.Descendants("Player").Select(p => new Models.Player
-                {
-                    Id = (int?)p.Element("id") ?? (int?)p.Element("Id") ?? 0,
-                    Name = (string?)p.Element("name") ?? (string?)p.Element("Name"),
-                    Team = (string?)p.Element("team") ?? (string?)p.Element("Team"),
-                    Season = (string?)p.Element("season") ?? (string?)p.Element("Season"),
-                    Points = (double?)p.Element("points") ?? (double?)p.Element("Points") ?? 0
-                }).ToArray();
-                return players;
-            }
-            catch
+                Id = ReadStringId(element),
+                Name = ReadString(element, "name"),
+                Team = ReadString(element, "team"),
+                Season = ReadInt(element, "season"),
+                Points = ReadDouble(element, "points")
+            };
+        }
+
+        private static string? ReadStringId(JsonElement element)
+        {
+            if (element.TryGetProperty("id", out var idProp))
             {
-                return Array.Empty<Models.Player>();
+                return ValueToString(idProp);
             }
+
+            if (element.TryGetProperty("recordId", out var recordIdProp))
+            {
+                return ValueToString(recordIdProp);
+            }
+
+            return null;
         }
 
-        public async Task<bool> CreatePlayerAsync(Models.Player player)
+        private static string? ReadString(JsonElement element, string name)
         {
-            ApplyHeaders();
-            var content = new StringContent(JsonSerializer.Serialize(player), Encoding.UTF8, "application/json");
-            var response = await _http.PostAsync("/api/players", content);
-            return response.IsSuccessStatusCode;
+            return element.TryGetProperty(name, out var prop) ? ValueToString(prop) : null;
         }
 
-        public async Task<bool> UpdatePlayerAsync(Models.Player player)
+        private static int ReadInt(JsonElement element, string name)
         {
-            ApplyHeaders();
-            var content = new StringContent(JsonSerializer.Serialize(player), Encoding.UTF8, "application/json");
-            var response = await _http.PutAsync($"/api/players/{player.Id}", content);
-            return response.IsSuccessStatusCode;
+            if (!element.TryGetProperty(name, out var prop))
+            {
+                return 0;
+            }
+
+            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out var val))
+            {
+                return val;
+            }
+
+            return int.TryParse(ValueToString(prop), out var parsed) ? parsed : 0;
         }
 
-        public async Task<bool> DeletePlayerAsync(int id)
+        private static double ReadDouble(JsonElement element, string name)
         {
-            ApplyHeaders();
-            var response = await _http.DeleteAsync($"/api/players/{id}");
-            return response.IsSuccessStatusCode;
+            if (!element.TryGetProperty(name, out var prop))
+            {
+                return 0;
+            }
+
+            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetDouble(out var val))
+            {
+                return val;
+            }
+
+            return double.TryParse(ValueToString(prop), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+                ? parsed
+                : 0;
+        }
+
+        private static string? ValueToString(JsonElement prop)
+        {
+            return prop.ValueKind switch
+            {
+                JsonValueKind.String => prop.GetString(),
+                JsonValueKind.Number => prop.GetRawText(),
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                _ => null
+            };
+        }
+
+        private async Task<T?> DeserializeAsync<T>(HttpResponseMessage response)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return default;
+            }
+
+            return JsonSerializer.Deserialize<T>(body, _jsonOptions);
+        }
+
+        private void ApplyAuthorizationHeader()
+        {
+            _http.DefaultRequestHeaders.Authorization = string.IsNullOrWhiteSpace(AccessToken)
+                ? null
+                : new AuthenticationHeaderValue("Bearer", AccessToken);
+        }
+
+        private class TokenResponse
+        {
+            public string? AccessToken { get; set; }
+            public string? RefreshToken { get; set; }
         }
     }
 }
