@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -71,7 +70,7 @@ namespace IISApp.Services
                 return Array.Empty<Player>();
             }
 
-            return await DeserializePlayersAsync(response);
+            return await DeserializeAsync<Player[]>(response) ?? Array.Empty<Player>();
         }
 
         public async Task<Player?> GetPlayerByIdAsync(string recordId)
@@ -82,7 +81,7 @@ namespace IISApp.Services
                 return null;
             }
 
-            return await DeserializePlayerAsync(response);
+            return await DeserializeAsync<Player>(response);
         }
 
         public async Task<Player?> CreatePlayerAsync(Player player)
@@ -100,7 +99,7 @@ namespace IISApp.Services
                 return null;
             }
 
-            return await DeserializePlayerAsync(response);
+            return await DeserializeAsync<Player>(response);
         }
 
         public async Task<Player?> UpdatePlayerAsync(Player player)
@@ -123,7 +122,7 @@ namespace IISApp.Services
                 return null;
             }
 
-            return await DeserializePlayerAsync(response);
+            return await DeserializeAsync<Player>(response);
         }
 
         public async Task<bool> DeletePlayerAsync(string recordId)
@@ -192,117 +191,6 @@ namespace IISApp.Services
             }
 
             return await _http.SendAsync(request);
-        }
-
-        private async Task<Player[]?> DeserializePlayersAsync(HttpResponseMessage response)
-        {
-            var body = await response.Content.ReadAsStringAsync();
-            if (string.IsNullOrWhiteSpace(body))
-            {
-                return Array.Empty<Player>();
-            }
-
-            using var doc = JsonDocument.Parse(body);
-            if (doc.RootElement.ValueKind != JsonValueKind.Array)
-            {
-                return Array.Empty<Player>();
-            }
-
-            var players = new List<Player>();
-            foreach (var item in doc.RootElement.EnumerateArray())
-            {
-                players.Add(MapPlayer(item));
-            }
-
-            return players.ToArray();
-        }
-
-        private async Task<Player?> DeserializePlayerAsync(HttpResponseMessage response)
-        {
-            var body = await response.Content.ReadAsStringAsync();
-            if (string.IsNullOrWhiteSpace(body))
-            {
-                return null;
-            }
-
-            using var doc = JsonDocument.Parse(body);
-            return doc.RootElement.ValueKind == JsonValueKind.Object ? MapPlayer(doc.RootElement) : null;
-        }
-
-        private static Player MapPlayer(JsonElement element)
-        {
-            return new Player
-            {
-                Id = ReadStringId(element),
-                Name = ReadString(element, "name"),
-                Team = ReadString(element, "team"),
-                Season = ReadInt(element, "season"),
-                Points = ReadDouble(element, "points")
-            };
-        }
-
-        private static string? ReadStringId(JsonElement element)
-        {
-            if (element.TryGetProperty("id", out var idProp))
-            {
-                return ValueToString(idProp);
-            }
-
-            if (element.TryGetProperty("recordId", out var recordIdProp))
-            {
-                return ValueToString(recordIdProp);
-            }
-
-            return null;
-        }
-
-        private static string? ReadString(JsonElement element, string name)
-        {
-            return element.TryGetProperty(name, out var prop) ? ValueToString(prop) : null;
-        }
-
-        private static int ReadInt(JsonElement element, string name)
-        {
-            if (!element.TryGetProperty(name, out var prop))
-            {
-                return 0;
-            }
-
-            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out var val))
-            {
-                return val;
-            }
-
-            return int.TryParse(ValueToString(prop), out var parsed) ? parsed : 0;
-        }
-
-        private static double ReadDouble(JsonElement element, string name)
-        {
-            if (!element.TryGetProperty(name, out var prop))
-            {
-                return 0;
-            }
-
-            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetDouble(out var val))
-            {
-                return val;
-            }
-
-            return double.TryParse(ValueToString(prop), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var parsed)
-                ? parsed
-                : 0;
-        }
-
-        private static string? ValueToString(JsonElement prop)
-        {
-            return prop.ValueKind switch
-            {
-                JsonValueKind.String => prop.GetString(),
-                JsonValueKind.Number => prop.GetRawText(),
-                JsonValueKind.True => "true",
-                JsonValueKind.False => "false",
-                _ => null
-            };
         }
 
         private async Task<T?> DeserializeAsync<T>(HttpResponseMessage response)

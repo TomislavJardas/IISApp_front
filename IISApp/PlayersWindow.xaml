@@ -46,7 +46,6 @@
             <Button x:Name="SaveButton" Content="Save" Margin="5" Click="SaveButton_Click"/>
             <Button x:Name="DeleteButton" Content="Delete" Margin="5" Click="DeleteButton_Click"/>
             <Button Content="Load All" Margin="5" Click="LoadAllButton_Click"/>
-            <Button Content="Load By Id" Margin="5" Click="LoadByIdButton_Click"/>
             <Button Content="New" Margin="5" Click="NewButton_Click"/>
             <Button Content="Logout" Margin="5" Click="LogoutButton_Click"/>
         </StackPanel>

@@ -36,33 +36,15 @@ namespace IISApp.Services
             using var content = new StringContent(soapBody, Encoding.UTF8, "text/xml");
             content.Headers.Add("SOAPAction", "");
 
-            var response = await SendSoapWithFallbackAsync(content);
+            var response = await _http.PostAsync("/ws", content);
             var xml = await response.Content.ReadAsStringAsync();
+
             if (!response.IsSuccessStatusCode)
             {
                 throw new InvalidOperationException($"SOAP request failed ({(int)response.StatusCode}): {xml}");
             }
 
             return ParsePlayers(xml);
-        }
-
-        private async Task<HttpResponseMessage> SendSoapWithFallbackAsync(StringContent content)
-        {
-            var endpoints = new[] { "/ws", "/ws/players" };
-            HttpResponseMessage? last = null;
-
-            foreach (var endpoint in endpoints)
-            {
-                using var retryContent = new StringContent(await content.ReadAsStringAsync(), Encoding.UTF8, "text/xml");
-                retryContent.Headers.Add("SOAPAction", "");
-                last = await _http.PostAsync(endpoint, retryContent);
-                if (last.IsSuccessStatusCode || last.StatusCode != System.Net.HttpStatusCode.NotFound)
-                {
-                    return last;
-                }
-            }
-
-            return last ?? await _http.PostAsync("/ws", content);
         }
 
         private static Player[] ParsePlayers(string xml)
@@ -73,11 +55,12 @@ namespace IISApp.Services
             var faultNode = doc.SelectSingleNode("//*[local-name()='Fault']");
             if (faultNode != null)
             {
-                throw new InvalidOperationException($"SOAP fault: {faultNode.InnerText.Trim()}");
+                var faultText = faultNode.InnerText.Trim();
+                throw new InvalidOperationException(string.IsNullOrWhiteSpace(faultText) ? "SOAP fault received." : $"SOAP fault: {faultText}");
             }
 
             var list = new List<Player>();
-            var nodes = doc.SelectNodes("//*[local-name()='Body']//*[local-name()='Player']");
+            var nodes = doc.SelectNodes("//*[local-name()='SearchResponse']/*[local-name()='Player']");
             if (nodes == null)
             {
                 return Array.Empty<Player>();
@@ -85,13 +68,15 @@ namespace IISApp.Services
 
             foreach (XmlNode node in nodes)
             {
-                list.Add(new Player
+                var player = new Player
                 {
                     Name = node.SelectSingleNode("./*[local-name()='name']")?.InnerText,
                     Team = node.SelectSingleNode("./*[local-name()='team']")?.InnerText,
                     Season = int.TryParse(node.SelectSingleNode("./*[local-name()='season']")?.InnerText, out var season) ? season : 0,
                     Points = double.TryParse(node.SelectSingleNode("./*[local-name()='points']")?.InnerText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points) ? points : 0
-                });
+                };
+
+                list.Add(player);
             }
 
             return list.ToArray();
