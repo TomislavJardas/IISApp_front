@@ -1,34 +1,22 @@
-﻿<Window x:Class="IISApp.MainWindow"
+<Window x:Class="IISApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:IISApp"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-        <Grid Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-
-            <TextBlock Grid.Row="0" Text="Hi and Welcome to Weather" FontSize="24" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center" Margin="0 0 0 20" />
-
-
-            <Button Grid.Row="1" x:Name="OpenLoginWindowButton" Content="Open Login Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenLoginWindowButton_Click" />
-            <Button Grid.Row="2" x:Name="OpenPlayersWindowButton" Content="Open Players Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenPlayersWindowButton_Click" />
-            <Button Grid.Row="3" x:Name="OpenSOAPWindowButton" Content="Open SOAP Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenSOAPWindowButton_Click" />
-            <Button Grid.Row="4" x:Name="OpenXRPCWindowBUtton" Content="Open XRPC Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenXRCPWindowButton_Click" />
-        </Grid>
-    </Grid>
+        Title="IISApp Desktop Testing Client" Height="760" Width="1100">
+    <DockPanel Margin="12">
+        <Border DockPanel.Dock="Top" BorderThickness="1" BorderBrush="Gray" Padding="8" Margin="0,0,0,8">
+            <StackPanel>
+                <TextBlock FontSize="16" FontWeight="Bold" Text="Backend Configuration"/>
+                <TextBlock x:Name="ConfigText"/>
+                <TextBlock x:Name="AuthStatusText" FontWeight="SemiBold"/>
+            </StackPanel>
+        </Border>
+        <TabControl>
+            <TabItem Header="Login & Tokens"><StackPanel Margin="10"><TextBox x:Name="UsernameText" Text="admin"/><PasswordBox x:Name="PasswordText"/><Button Content="Login" Click="Login_Click" Margin="0,8,0,0" Width="120"/></StackPanel></TabItem>
+            <TabItem Header="REST Players"><StackPanel Margin="10"><WrapPanel><Button Content="GET all" Click="GetPlayers_Click"/><TextBox x:Name="PlayerIdText" Width="120" Margin="5,0"/><Button Content="GET by id" Click="GetPlayerById_Click"/><Button x:Name="CreateButton" Content="POST sample" Margin="5,0" Click="CreatePlayer_Click"/><Button x:Name="PatchButton" Content="PATCH sample" Margin="5,0" Click="PatchPlayer_Click"/><Button x:Name="DeleteButton" Content="DELETE" Margin="5,0" Click="DeletePlayer_Click"/></WrapPanel><TextBox x:Name="RestOutput" AcceptsReturn="True" Height="520" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap"/></StackPanel></TabItem>
+            <TabItem Header="XML Validate/Save"><StackPanel Margin="10"><TextBox x:Name="XmlInput" AcceptsReturn="True" Height="220" TextWrapping="Wrap"/><WrapPanel Margin="0,6"><Button Content="Load sample XML" Click="LoadSampleXml_Click"/><Button x:Name="XmlSaveButton" Content="POST /validateAndSaveXml" Margin="8,0" Click="SaveXml_Click"/></WrapPanel><TextBox x:Name="XmlOutput" AcceptsReturn="True" Height="290"/></StackPanel></TabItem>
+            <TabItem Header="SOAP Search"><StackPanel Margin="10"><WrapPanel><TextBox x:Name="SoapSearchText" Width="260"/><Button Content="Search" Margin="8,0" Click="SoapSearch_Click"/></WrapPanel><TextBox x:Name="SoapOutput" AcceptsReturn="True" Height="520"/></StackPanel></TabItem>
+            <TabItem Header="Weather"><StackPanel Margin="10"><WrapPanel><TextBox x:Name="CityText" Width="260"/><Button Content="Lookup" Margin="8,0" Click="WeatherLookup_Click"/></WrapPanel><TextBox x:Name="WeatherOutput" AcceptsReturn="True" Height="520"/></StackPanel></TabItem>
+            <TabItem Header="Health Checks"><StackPanel Margin="10"><Button Content="Run checks" Width="120" Click="HealthChecks_Click"/><TextBox x:Name="HealthOutput" AcceptsReturn="True" Height="560"/></StackPanel></TabItem>
+        </TabControl>
+    </DockPanel>
 </Window>
