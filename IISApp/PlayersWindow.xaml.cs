@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Xml.Linq;
@@ -27,22 +29,41 @@ namespace IISApp
 
         private void ConfigurePermissions()
         {
-            var isReadOnly = !_permissions.CanMutatePlayers;
+            var isReadOnly = !_permissions.CanWrite;
             SaveButton.IsEnabled = !isReadOnly;
             DeleteButton.IsEnabled = !isReadOnly;
             AccessModeTextBlock.Text = isReadOnly ? "Mode: Read-only" : "Mode: Full-access";
         }
 
-        private Player BuildPlayerFromForm()
+        private bool TryBuildPlayerFromForm(out Player player, out string errorMessage)
         {
-            return new Player
-            {
-                Id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim(),
-                Name = NameTextBox.Text.Trim(),
-                Team = TeamTextBox.Text.Trim(),
-                Season = int.TryParse(SeasonTextBox.Text, out var season) ? season : 0,
-                Points = double.TryParse(PointsTextBox.Text, out var points) ? points : 0
-            };
+            var errors = new List<string>();
+            player = new Player();
+
+            var id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim();
+            var name = NameTextBox.Text.Trim();
+            var team = TeamTextBox.Text.Trim();
+            var seasonText = SeasonTextBox.Text.Trim();
+            var pointsText = PointsTextBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(name)) errors.Add("Name is required.");
+            if (string.IsNullOrWhiteSpace(team)) errors.Add("Team is required.");
+
+            int season = 0;
+            if (string.IsNullOrWhiteSpace(seasonText)) errors.Add("Season is required.");
+            else if (!int.TryParse(seasonText, out season)) errors.Add("Season must be a valid whole number.");
+            else if (season <= 0) errors.Add("Season must be greater than 0.");
+
+            double points = 0;
+            if (string.IsNullOrWhiteSpace(pointsText)) errors.Add("Points are required.");
+            else if (!double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out points)) errors.Add("Points must be a valid decimal number.");
+            else if (points < 0) errors.Add("Points must be greater than or equal to 0.");
+
+            errorMessage = string.Join(Environment.NewLine, errors);
+            if (errors.Count > 0) return false;
+
+            player = new Player { Id = id, Name = name, Team = team, Season = season, Points = points };
+            return true;
         }
 
         private void PopulateForm(Player player)
@@ -51,7 +72,7 @@ namespace IISApp
             NameTextBox.Text = player.Name ?? string.Empty;
             TeamTextBox.Text = player.Team ?? string.Empty;
             SeasonTextBox.Text = player.Season.ToString();
-            PointsTextBox.Text = player.Points.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            PointsTextBox.Text = player.Points.ToString(CultureInfo.InvariantCulture);
         }
 
         private void ClearForm()
@@ -71,7 +92,7 @@ namespace IISApp
                     new XElement("name", player.Name ?? string.Empty),
                     new XElement("team", player.Team ?? string.Empty),
                     new XElement("season", player.Season),
-                    new XElement("points", player.Points.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+                    new XElement("points", player.Points.ToString(CultureInfo.InvariantCulture))));
 
             return xml.ToString(SaveOptions.DisableFormatting);
         }
@@ -99,14 +120,11 @@ namespace IISApp
             StatusTextBlock.Text = $"Loaded {players?.Length ?? 0} players.";
         }
 
-        private async void LoadAllButton_Click(object sender, RoutedEventArgs e)
-        {
-            await LoadPlayersAsync();
-        }
+        private async void LoadAllButton_Click(object sender, RoutedEventArgs e) => await LoadPlayersAsync();
 
         private async void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_permissions.CanMutatePlayers)
+            if (!_permissions.CanWrite)
             {
                 MessageBox.Show("Read-only mode is enabled. Save is disabled.");
                 return;
@@ -118,32 +136,21 @@ namespace IISApp
                 return;
             }
 
-            var player = BuildPlayerFromForm();
-            if (string.IsNullOrWhiteSpace(player.Name) || string.IsNullOrWhiteSpace(player.Team) || player.Season <= 0)
+            if (!TryBuildPlayerFromForm(out var player, out var validationErrors))
             {
-                MessageBox.Show("Name, team, and season are required.");
+                MessageBox.Show($"Validation failed:{Environment.NewLine}- {validationErrors.Replace(Environment.NewLine, Environment.NewLine + "- ")}", "Validation failed", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             try
             {
-                Player? result;
-                if (string.IsNullOrWhiteSpace(player.Id))
-                {
-                    result = await _api.CreatePlayerAsync(player);
-                    MessageBox.Show(result is null ? "Create failed." : "Player created.");
-                }
-                else
-                {
-                    result = await _api.UpdatePlayerAsync(player);
-                    MessageBox.Show(result is null ? "Update failed." : "Player updated.");
-                }
+                Player? result = string.IsNullOrWhiteSpace(player.Id)
+                    ? await _api.CreatePlayerAsync(player)
+                    : await _api.UpdatePlayerAsync(player);
 
+                MessageBox.Show(result is null ? "Save failed." : string.IsNullOrWhiteSpace(player.Id) ? "Player created." : "Player updated.");
                 await LoadPlayersAsync();
-                if (result is not null)
-                {
-                    PopulateForm(result);
-                }
+                if (result is not null) PopulateForm(result);
             }
             catch (Exception ex)
             {
@@ -153,7 +160,7 @@ namespace IISApp
 
         private async void DeleteButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_permissions.CanMutatePlayers)
+            if (!_permissions.CanWrite)
             {
                 MessageBox.Show("Read-only mode is enabled. Delete is disabled.");
                 return;
@@ -167,10 +174,7 @@ namespace IISApp
             }
 
             var confirm = MessageBox.Show($"Delete player {recordId}?", "Confirm delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-            if (confirm != MessageBoxResult.Yes)
-            {
-                return;
-            }
+            if (confirm != MessageBoxResult.Yes) return;
 
             var success = await _api.DeletePlayerAsync(recordId);
             MessageBox.Show(success ? "Player deleted." : "Delete failed.");
@@ -184,7 +188,12 @@ namespace IISApp
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
         {
-            var player = BuildPlayerFromForm();
+            if (!TryBuildPlayerFromForm(out var player, out var validationErrors))
+            {
+                MessageBox.Show($"Validation failed:{Environment.NewLine}- {validationErrors.Replace(Environment.NewLine, Environment.NewLine + "- ")}", "Validation failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var xml = BuildPlayerXml(player);
             var schema = GetSelectedSchema();
             var result = await _validator.ValidateAndSaveAsync(xml, schema);
@@ -193,26 +202,13 @@ namespace IISApp
 
         private async void PlayersListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (PlayersListBox.SelectedItem is not Player selectedPlayer)
-            {
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(selectedPlayer.Id))
-            {
-                PopulateForm(selectedPlayer);
-                return;
-            }
-
+            if (PlayersListBox.SelectedItem is not Player selectedPlayer) return;
+            if (string.IsNullOrWhiteSpace(selectedPlayer.Id)) { PopulateForm(selectedPlayer); return; }
             var detailed = await _api.GetPlayerByIdAsync(selectedPlayer.Id);
             PopulateForm(detailed ?? selectedPlayer);
         }
 
-        private void NewButton_Click(object sender, RoutedEventArgs e)
-        {
-            ClearForm();
-            StatusTextBlock.Text = "Creating a new player.";
-        }
+        private void NewButton_Click(object sender, RoutedEventArgs e) { ClearForm(); StatusTextBlock.Text = "Creating a new player."; }
 
         private void LogoutButton_Click(object sender, RoutedEventArgs e)
         {

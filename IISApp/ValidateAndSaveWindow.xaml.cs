@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,7 +12,7 @@ namespace IISApp
     {
         private readonly ValidationService _validator;
 
-        public ValidateAndSaveWindow() : this(new ApiService(AppConfig.ApiBaseUrl))
+        public ValidateAndSaveWindow() : this(new ApiService(AppConfig.Load().ApiBaseUrl))
         {
         }
 
@@ -20,16 +22,41 @@ namespace IISApp
             _validator = new ValidationService(api);
         }
 
-        private string BuildPlayerXml()
+        private bool TryBuildPlayerXml(out string xml, out string errorMessage)
         {
-            var xml = new XElement("Players",
-                new XElement("Player",
-                    new XElement("name", NameTextBox.Text.Trim()),
-                    new XElement("team", TeamTextBox.Text.Trim()),
-                    new XElement("season", int.TryParse(SeasonTextBox.Text, out var season) ? season : 0),
-                    new XElement("points", double.TryParse(PointsTextBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var points) ? points.ToString(CultureInfo.InvariantCulture) : "0")));
+            var errors = new List<string>();
+            xml = string.Empty;
 
-            return xml.ToString(SaveOptions.DisableFormatting);
+            var name = NameTextBox.Text.Trim();
+            var team = TeamTextBox.Text.Trim();
+            var seasonText = SeasonTextBox.Text.Trim();
+            var pointsText = PointsTextBox.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(name)) errors.Add("Name is required.");
+            if (string.IsNullOrWhiteSpace(team)) errors.Add("Team is required.");
+
+            int season = 0;
+            if (string.IsNullOrWhiteSpace(seasonText)) errors.Add("Season is required.");
+            else if (!int.TryParse(seasonText, out season)) errors.Add("Season must be a valid whole number.");
+            else if (season <= 0) errors.Add("Season must be greater than 0.");
+
+            double points = 0;
+            if (string.IsNullOrWhiteSpace(pointsText)) errors.Add("Points are required.");
+            else if (!double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out points)) errors.Add("Points must be a valid decimal number.");
+            else if (points < 0) errors.Add("Points must be greater than or equal to 0.");
+
+            errorMessage = string.Join(Environment.NewLine, errors);
+            if (errors.Count > 0) return false;
+
+            var parsedXml = new XElement("Players",
+                new XElement("Player",
+                    new XElement("name", name),
+                    new XElement("team", team),
+                    new XElement("season", season),
+                    new XElement("points", points.ToString(CultureInfo.InvariantCulture))));
+
+            xml = parsedXml.ToString(SaveOptions.DisableFormatting);
+            return true;
         }
 
         private string GetSchema()
@@ -44,7 +71,6 @@ namespace IISApp
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
         {
-            // Backend currently exposes only validate+save (/validateAndSaveXml).
             await ExecuteValidateAndSaveAsync("Validate (backend validates and saves)");
         }
 
@@ -55,15 +81,20 @@ namespace IISApp
 
         private async System.Threading.Tasks.Task ExecuteValidateAndSaveAsync(string actionLabel)
         {
-            var xml = BuildPlayerXml();
+            if (!TryBuildPlayerXml(out var xml, out var validationErrors))
+            {
+                ResponseTextBox.Text = $"Validation failed:{Environment.NewLine}- {validationErrors.Replace(Environment.NewLine, Environment.NewLine + "- ")}";
+                return;
+            }
+
             var schema = GetSchema();
 
             try
             {
                 var result = await _validator.ValidateAndSaveAsync(xml, schema);
-                ResponseTextBox.Text = $"{actionLabel}:{System.Environment.NewLine}{result}";
+                ResponseTextBox.Text = $"{actionLabel}:{Environment.NewLine}{result}";
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 ResponseTextBox.Text = $"Error: {ex.Message}";
             }

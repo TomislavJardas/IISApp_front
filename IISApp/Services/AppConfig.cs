@@ -1,31 +1,34 @@
 using System;
 using System.Configuration;
 
-namespace IISApp.Services
+namespace IISApp.Services;
+
+public sealed class AppConfig
 {
-    public static class AppConfig
+    public string ApiBaseUrl { get; init; } = "http://localhost:8080";
+    public string SoapBaseUrl { get; init; } = "http://localhost:8080/ws";
+    public string WeatherServiceUrl { get; init; } = "http://localhost:9090/RPC2";
+    public string RelaxNgBaseUrl { get; init; } = "http://localhost:8081";
+    public FrontendAccessMode AccessMode { get; init; } = FrontendAccessMode.FullAccess;
+
+    public static AppConfig Load()
     {
-        public static string ApiBaseUrl => ReadRequired("ApiBaseUrl", "http://localhost:8080");
+        var modeText = (ConfigurationManager.AppSettings["AccessMode"] ?? "FullAccess").Trim();
+        var mode = modeText.Equals("ReadOnly", StringComparison.OrdinalIgnoreCase) ? FrontendAccessMode.ReadOnly : FrontendAccessMode.FullAccess;
 
-        public static string SoapBaseUrl => ReadRequired("SoapBaseUrl", ApiBaseUrl);
-
-        public static string WeatherServiceUrl => ReadRequired("WeatherServiceUrl", "http://localhost:9090/RPC2");
-
-        public static FrontendAccessMode AccessMode
+        return new AppConfig
         {
-            get
-            {
-                var value = (ConfigurationManager.AppSettings["FrontendAccessMode"] ?? "FullAccess").Trim();
-                return value.Equals("ReadOnly", StringComparison.OrdinalIgnoreCase)
-                    ? FrontendAccessMode.ReadOnly
-                    : FrontendAccessMode.FullAccess;
-            }
-        }
+            ApiBaseUrl = Read("ApiBaseUrl", "http://localhost:8080"),
+            SoapBaseUrl = Read("SoapBaseUrl", "http://localhost:8080/ws"),
+            WeatherServiceUrl = Read("WeatherServiceUrl", "http://localhost:9090/RPC2"),
+            RelaxNgBaseUrl = Read("RelaxNgBaseUrl", "http://localhost:8081"),
+            AccessMode = mode
+        };
+    }
 
-        private static string ReadRequired(string key, string fallback)
-        {
-            var value = ConfigurationManager.AppSettings[key];
-            return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
-        }
+    private static string Read(string key, string fallback)
+    {
+        var v = ConfigurationManager.AppSettings[key];
+        return string.IsNullOrWhiteSpace(v) ? fallback : v.Trim();
     }
 }
