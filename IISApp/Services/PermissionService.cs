@@ -1,24 +1,18 @@
-namespace IISApp.Services
+namespace IISApp.Services;
+
+public enum FrontendAccessMode
 {
-    public enum FrontendAccessMode
-    {
-        ReadOnly,
-        FullAccess
-    }
+    ReadOnly,
+    FullAccess
+}
 
-    public class PermissionService
-    {
-        public PermissionService(FrontendAccessMode mode)
-        {
-            Mode = mode;
-        }
+public sealed class PermissionService
+{
+    public PermissionService(FrontendAccessMode mode) => Mode = mode;
 
-        public FrontendAccessMode Mode { get; }
+    public FrontendAccessMode Mode { get; }
+    public bool CanRead => true;
+    public bool CanWrite => Mode == FrontendAccessMode.FullAccess;
 
-        public bool CanReadPlayers => true;
-
-        public bool CanMutatePlayers => Mode == FrontendAccessMode.FullAccess;
-
-        public static PermissionService FromConfiguration() => new(AppConfig.AccessMode);
-    }
+    public string DeniedMessage => "This action is disabled in ReadOnly mode. Switch AccessMode=FullAccess in App.config.";
 }
