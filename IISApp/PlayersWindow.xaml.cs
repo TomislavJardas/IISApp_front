@@ -80,10 +80,34 @@ namespace IISApp
         {
             if (SchemaComboBox.SelectedItem is ComboBoxItem item)
             {
-                return item.Content?.ToString()?.ToLowerInvariant() ?? "xsd";
+                return item.Content?.ToString()?.ToLowerInvariant() ?? "rng";
             }
 
-            return "xsd";
+            return "rng";
+        }
+
+        private bool TryValidatePlayerInput(out string errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(NameTextBox.Text) || string.IsNullOrWhiteSpace(TeamTextBox.Text) || string.IsNullOrWhiteSpace(SeasonTextBox.Text))
+            {
+                errorMessage = "Name, team, and season are required.";
+                return false;
+            }
+
+            if (!int.TryParse(SeasonTextBox.Text.Trim(), out _))
+            {
+                errorMessage = "Invalid field type: season must be an integer number.";
+                return false;
+            }
+
+            if (!double.TryParse(PointsTextBox.Text.Trim(), out _))
+            {
+                errorMessage = "Invalid field type: points must be a numeric value.";
+                return false;
+            }
+
+            errorMessage = string.Empty;
+            return true;
         }
 
         private async System.Threading.Tasks.Task LoadPlayersAsync()
@@ -118,8 +142,13 @@ namespace IISApp
                 return;
             }
 
+            if (!TryValidatePlayerInput(out var validationError))
+            {
+                MessageBox.Show(validationError);
+                return;
+            }
             var player = BuildPlayerFromForm();
-            if (string.IsNullOrWhiteSpace(player.Name) || string.IsNullOrWhiteSpace(player.Team) || player.Season <= 0)
+            if (player.Season <= 0)
             {
                 MessageBox.Show("Name, team, and season are required.");
                 return;
@@ -184,11 +213,17 @@ namespace IISApp
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
         {
+            if (!TryValidatePlayerInput(out var validationError))
+            {
+                MessageBox.Show(validationError);
+                return;
+            }
+
             var player = BuildPlayerFromForm();
             var xml = BuildPlayerXml(player);
             var schema = GetSelectedSchema();
             var result = await _validator.ValidateAndSaveAsync(xml, schema);
-            MessageBox.Show(result, "Validate & Save result");
+            MessageBox.Show(result, "Validate & Save result (RNG)");
         }
 
         private async void PlayersListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)

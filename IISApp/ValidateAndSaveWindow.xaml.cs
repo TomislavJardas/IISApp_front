@@ -36,10 +36,10 @@ namespace IISApp
         {
             if (SchemaComboBox.SelectedItem is ComboBoxItem item)
             {
-                return item.Content?.ToString()?.ToLowerInvariant() ?? "xsd";
+                return item.Content?.ToString()?.ToLowerInvariant() ?? "rng";
             }
 
-            return "xsd";
+            return "rng";
         }
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
