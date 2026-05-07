@@ -184,11 +184,41 @@ namespace IISApp
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
         {
+            if (!TryValidatePlayerForm(out var errorMessage))
+            {
+                MessageBox.Show(errorMessage, "Validation error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var player = BuildPlayerFromForm();
             var xml = BuildPlayerXml(player);
             var schema = GetSelectedSchema();
             var result = await _validator.ValidateAndSaveAsync(xml, schema);
             MessageBox.Show(result, "Validate & Save result");
+        }
+
+        private bool TryValidatePlayerForm(out string errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(NameTextBox.Text) || string.IsNullOrWhiteSpace(TeamTextBox.Text))
+            {
+                errorMessage = "Name and team are required.";
+                return false;
+            }
+
+            if (!int.TryParse(SeasonTextBox.Text.Trim(), out _))
+            {
+                errorMessage = "Season must be a valid integer.";
+                return false;
+            }
+
+            if (!double.TryParse(PointsTextBox.Text.Trim(), out _))
+            {
+                errorMessage = "Points must be a valid number.";
+                return false;
+            }
+
+            errorMessage = string.Empty;
+            return true;
         }
 
         private async void PlayersListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
