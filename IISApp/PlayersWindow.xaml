@@ -39,8 +39,8 @@
         <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="5">
             <Label Content="Schema:" VerticalAlignment="Center"/>
             <ComboBox x:Name="SchemaComboBox" Width="100" Margin="5">
-                <ComboBoxItem Content="XSD" IsSelected="True"/>
-                <ComboBoxItem Content="RNG"/>
+                <ComboBoxItem Content="RNG" IsSelected="True"/>
+                <ComboBoxItem Content="XSD"/>
             </ComboBox>
             <Button Content="Validate (uses save endpoint)" Margin="5" Click="ValidateButton_Click"/>
             <Button x:Name="SaveButton" Content="Save" Margin="5" Click="SaveButton_Click"/>

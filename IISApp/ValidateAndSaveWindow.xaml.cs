@@ -26,8 +26,8 @@ namespace IISApp
                 new XElement("Player",
                     new XElement("name", NameTextBox.Text.Trim()),
                     new XElement("team", TeamTextBox.Text.Trim()),
-                    new XElement("season", int.TryParse(SeasonTextBox.Text, out var season) ? season : 0),
-                    new XElement("points", double.TryParse(PointsTextBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var points) ? points.ToString(CultureInfo.InvariantCulture) : "0")));
+                    new XElement("season", int.Parse(SeasonTextBox.Text.Trim(), CultureInfo.InvariantCulture)),
+                    new XElement("points", double.Parse(PointsTextBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture))));
 
             return xml.ToString(SaveOptions.DisableFormatting);
         }
@@ -36,10 +36,10 @@ namespace IISApp
         {
             if (SchemaComboBox.SelectedItem is ComboBoxItem item)
             {
-                return item.Content?.ToString()?.ToLowerInvariant() ?? "xsd";
+                return item.Content?.ToString()?.ToLowerInvariant() ?? "rng";
             }
 
-            return "xsd";
+            return "rng";
         }
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
@@ -55,6 +55,12 @@ namespace IISApp
 
         private async System.Threading.Tasks.Task ExecuteValidateAndSaveAsync(string actionLabel)
         {
+            if (!TryValidateInputs(out var validationError))
+            {
+                ResponseTextBox.Text = validationError;
+                return;
+            }
+
             var xml = BuildPlayerXml();
             var schema = GetSchema();
 
@@ -67,6 +73,30 @@ namespace IISApp
             {
                 ResponseTextBox.Text = $"Error: {ex.Message}";
             }
+        }
+
+        private bool TryValidateInputs(out string errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(NameTextBox.Text) || string.IsNullOrWhiteSpace(TeamTextBox.Text))
+            {
+                errorMessage = "User invalid: name and team are required.";
+                return false;
+            }
+
+            if (!int.TryParse(SeasonTextBox.Text.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _))
+            {
+                errorMessage = "User invalid: season must be a valid integer.";
+                return false;
+            }
+
+            if (!double.TryParse(PointsTextBox.Text.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out _))
+            {
+                errorMessage = "User invalid: points must be a valid number.";
+                return false;
+            }
+
+            errorMessage = string.Empty;
+            return true;
         }
     }
 }
