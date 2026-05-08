@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Xml.Linq;
@@ -33,16 +34,67 @@ namespace IISApp
             AccessModeTextBlock.Text = isReadOnly ? "Mode: Read-only" : "Mode: Full-access";
         }
 
-        private Player BuildPlayerFromForm()
+        private bool TryBuildPlayerFromForm(out Player player, out string errorMessage)
         {
-            return new Player
+            player = new Player();
+
+            var name = NameTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errorMessage = "Name is required.";
+                return false;
+            }
+
+            var team = TeamTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(team))
+            {
+                errorMessage = "Team is required.";
+                return false;
+            }
+
+            var seasonText = SeasonTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(seasonText))
+            {
+                errorMessage = "Season is required.";
+                return false;
+            }
+
+            if (!int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season))
+            {
+                errorMessage = "Season must be a valid integer.";
+                return false;
+            }
+
+            if (season <= 0)
+            {
+                errorMessage = "Season must be greater than 0.";
+                return false;
+            }
+
+            var pointsText = PointsTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(pointsText))
+            {
+                errorMessage = "Points is required.";
+                return false;
+            }
+
+            if (!double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points))
+            {
+                errorMessage = "Points must be a valid number.";
+                return false;
+            }
+
+            player = new Player
             {
                 Id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim(),
-                Name = NameTextBox.Text.Trim(),
-                Team = TeamTextBox.Text.Trim(),
-                Season = int.TryParse(SeasonTextBox.Text, out var season) ? season : 0,
-                Points = double.TryParse(PointsTextBox.Text, out var points) ? points : 0
+                Name = name,
+                Team = team,
+                Season = season,
+                Points = points
             };
+
+            errorMessage = string.Empty;
+            return true;
         }
 
         private void PopulateForm(Player player)
@@ -118,10 +170,9 @@ namespace IISApp
                 return;
             }
 
-            var player = BuildPlayerFromForm();
-            if (string.IsNullOrWhiteSpace(player.Name) || string.IsNullOrWhiteSpace(player.Team) || player.Season <= 0)
+            if (!TryBuildPlayerFromForm(out var player, out var validationError))
             {
-                MessageBox.Show("Name, team, and season are required.");
+                MessageBox.Show(validationError);
                 return;
             }
 
@@ -184,7 +235,12 @@ namespace IISApp
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
         {
-            var player = BuildPlayerFromForm();
+            if (!TryBuildPlayerFromForm(out var player, out var validationError))
+            {
+                MessageBox.Show(validationError);
+                return;
+            }
+
             var xml = BuildPlayerXml(player);
             var schema = GetSelectedSchema();
             var result = await _validator.ValidateAndSaveAsync(xml, schema);
