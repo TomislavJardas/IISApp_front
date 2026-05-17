@@ -300,26 +300,6 @@ namespace IISApp.Services
                 var root = doc.RootElement;
 
                 string? generalMessage = null;
-                if (!string.IsNullOrWhiteSpace(prefixText))
-                {
-                    var colonIndex = prefixText.LastIndexOf(':');
-                    var usefulPrefix = colonIndex >= 0 ? prefixText[..colonIndex] : prefixText;
-                    usefulPrefix = usefulPrefix.Trim();
-                    if (usefulPrefix.EndsWith(")"))
-                    {
-                        var openParenIndex = usefulPrefix.LastIndexOf("(", StringComparison.Ordinal);
-                        if (openParenIndex > 0)
-                        {
-                            usefulPrefix = usefulPrefix[..openParenIndex].Trim();
-                        }
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(usefulPrefix))
-                    {
-                        generalMessage = usefulPrefix.EndsWith(".") ? usefulPrefix : $"{usefulPrefix}.";
-                    }
-                }
-
                 foreach (var key in new[] { "message", "error", "detail" })
                 {
                     if (root.ValueKind == JsonValueKind.Object &&
@@ -336,57 +316,6 @@ namespace IISApp.Services
                 }
 
                 var fieldMessages = new List<string>();
-                if (root.ValueKind == JsonValueKind.Object &&
-                    root.TryGetProperty("status", out var statusProp) &&
-                    statusProp.ValueKind == JsonValueKind.Number &&
-                    statusProp.TryGetInt32(out var statusCode))
-                {
-                    fieldMessages.Add($"Status: {statusCode}");
-                }
-
-                if (root.ValueKind == JsonValueKind.Object &&
-                    root.TryGetProperty("error", out var errorProp) &&
-                    errorProp.ValueKind == JsonValueKind.String)
-                {
-                    var errorValue = errorProp.GetString();
-                    if (!string.IsNullOrWhiteSpace(errorValue))
-                    {
-                        fieldMessages.Add($"Error: {errorValue}");
-                    }
-                }
-
-                if (root.ValueKind == JsonValueKind.Object &&
-                    root.TryGetProperty("path", out var pathProp) &&
-                    pathProp.ValueKind == JsonValueKind.String)
-                {
-                    var pathValue = pathProp.GetString();
-                    if (!string.IsNullOrWhiteSpace(pathValue))
-                    {
-                        fieldMessages.Add($"Path: {pathValue}");
-                    }
-                }
-
-                if (root.ValueKind == JsonValueKind.Object &&
-                    root.TryGetProperty("detail", out var detailProp) &&
-                    detailProp.ValueKind == JsonValueKind.String)
-                {
-                    var detailValue = detailProp.GetString();
-                    if (!string.IsNullOrWhiteSpace(detailValue))
-                    {
-                        fieldMessages.Add($"Detail: {detailValue}");
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(generalMessage))
-                {
-                    fieldMessages.RemoveAll(m =>
-                        m.StartsWith("Error: ", StringComparison.Ordinal) &&
-                        string.Equals(m["Error: ".Length..], generalMessage, StringComparison.Ordinal));
-                    fieldMessages.RemoveAll(m =>
-                        m.StartsWith("Detail: ", StringComparison.Ordinal) &&
-                        string.Equals(m["Detail: ".Length..], generalMessage, StringComparison.Ordinal));
-                }
-
                 if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("errors", out var errors))
                 {
                     var errorMessage = ExtractFieldErrors(errors);
@@ -428,6 +357,21 @@ namespace IISApp.Services
             }
 
             return rawError;
+        }
+
+        private static Dictionary<string, object> BuildRawPlayerPayload(string name, string team, string seasonText, string pointsText)
+        {
+            return new Dictionary<string, object>
+            {
+                ["name"] = name,
+                ["team"] = team,
+                ["season"] = int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season)
+                    ? season
+                    : seasonText,
+                ["points"] = double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points)
+                    ? points
+                    : pointsText
+            };
         }
 
         private static Dictionary<string, object> BuildRawPlayerPayload(string name, string team, string seasonText, string pointsText)
