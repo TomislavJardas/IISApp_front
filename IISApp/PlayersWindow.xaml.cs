@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Xml.Linq;
@@ -53,14 +52,14 @@ namespace IISApp
             PlayersListBox.SelectedItem = null;
         }
 
-        private string BuildPlayerXml(Player player)
+        private string BuildPlayerXml(string name, string team, string seasonText, string pointsText)
         {
             var xml = new XElement("Players",
                 new XElement("Player",
-                    new XElement("name", player.Name ?? string.Empty),
-                    new XElement("team", player.Team ?? string.Empty),
-                    new XElement("season", player.Season),
-                    new XElement("points", player.Points.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+                    new XElement("name", name),
+                    new XElement("team", team),
+                    new XElement("season", seasonText),
+                    new XElement("points", pointsText)));
 
             return xml.ToString(SaveOptions.DisableFormatting);
         }
@@ -107,30 +106,21 @@ namespace IISApp
                 return;
             }
 
+            var id = IdTextBox.Text.Trim();
+            var name = NameTextBox.Text.Trim();
+            var team = TeamTextBox.Text.Trim();
             var seasonText = SeasonTextBox.Text.Trim();
             var pointsText = PointsTextBox.Text.Trim();
-
-            _ = int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season);
-            _ = double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points);
-
-            var player = new Player
-            {
-                Id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim(),
-                Name = NameTextBox.Text.Trim(),
-                Team = TeamTextBox.Text.Trim(),
-                Season = season,
-                Points = points
-            };
 
             try
             {
                 ApiResult<Player> result;
-                if (string.IsNullOrWhiteSpace(player.Id))
+                if (string.IsNullOrWhiteSpace(id))
                 {
-                    result = await _api.CreatePlayerAsync(player);
+                    result = await _api.CreatePlayerFromRawAsync(name, team, seasonText, pointsText);
                     if (!result.Success)
                     {
-                        MessageBox.Show(result.ErrorMessage, "Create failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(result.ErrorMessage, "Player validation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -138,10 +128,10 @@ namespace IISApp
                 }
                 else
                 {
-                    result = await _api.UpdatePlayerAsync(player);
+                    result = await _api.UpdatePlayerFromRawAsync(id, name, team, seasonText, pointsText);
                     if (!result.Success)
                     {
-                        MessageBox.Show(result.ErrorMessage, "Update failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(result.ErrorMessage, "Player validation failed", MessageBoxButton.OK, MessageBoxImage.Error);
                         return;
                     }
 
@@ -193,22 +183,11 @@ namespace IISApp
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
         {
+            var name = NameTextBox.Text.Trim();
+            var team = TeamTextBox.Text.Trim();
             var seasonText = SeasonTextBox.Text.Trim();
             var pointsText = PointsTextBox.Text.Trim();
-
-            _ = int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season);
-            _ = double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points);
-
-            var player = new Player
-            {
-                Id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim(),
-                Name = NameTextBox.Text.Trim(),
-                Team = TeamTextBox.Text.Trim(),
-                Season = season,
-                Points = points
-            };
-
-            var xml = BuildPlayerXml(player);
+            var xml = BuildPlayerXml(name, team, seasonText, pointsText);
             var schema = GetSelectedSchema();
             var result = await _validator.ValidateAndSaveAsync(xml, schema);
             MessageBox.Show(result, "Validate & Save result");

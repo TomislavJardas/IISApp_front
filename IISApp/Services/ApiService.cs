@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Globalization;
 using System.Threading.Tasks;
 using IISApp.Models;
 
@@ -113,6 +114,28 @@ namespace IISApp.Services
             };
         }
 
+        public async Task<ApiResult<Player>> CreatePlayerFromRawAsync(string name, string team, string seasonText, string pointsText)
+        {
+            var payload = BuildRawPlayerPayload(name, team, seasonText, pointsText);
+            var response = await SendWithAutoRefreshAsync(HttpMethod.Post, "/api/players", payload);
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResult<Player>
+                {
+                    Success = false,
+                    StatusCode = response.StatusCode,
+                    ErrorMessage = await ReadErrorMessageAsync(response)
+                };
+            }
+
+            return new ApiResult<Player>
+            {
+                Success = true,
+                StatusCode = response.StatusCode,
+                Data = await DeserializeAsync<Player>(response)
+            };
+        }
+
         public async Task<ApiResult<Player>> UpdatePlayerAsync(Player player)
         {
             if (string.IsNullOrWhiteSpace(player.Id))
@@ -128,6 +151,33 @@ namespace IISApp.Services
                 points = player.Points
             };
             var response = await SendWithAutoRefreshAsync(HttpMethod.Patch, $"/api/players/{Uri.EscapeDataString(player.Id)}", payload);
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ApiResult<Player>
+                {
+                    Success = false,
+                    StatusCode = response.StatusCode,
+                    ErrorMessage = await ReadErrorMessageAsync(response)
+                };
+            }
+
+            return new ApiResult<Player>
+            {
+                Success = true,
+                StatusCode = response.StatusCode,
+                Data = await DeserializeAsync<Player>(response)
+            };
+        }
+
+        public async Task<ApiResult<Player>> UpdatePlayerFromRawAsync(string id, string name, string team, string seasonText, string pointsText)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                throw new ArgumentException("Cannot update player without record id.", nameof(id));
+            }
+
+            var payload = BuildRawPlayerPayload(name, team, seasonText, pointsText);
+            var response = await SendWithAutoRefreshAsync(HttpMethod.Patch, $"/api/players/{Uri.EscapeDataString(id)}", payload);
             if (!response.IsSuccessStatusCode)
             {
                 return new ApiResult<Player>
@@ -228,6 +278,7 @@ namespace IISApp.Services
                 using var doc = JsonDocument.Parse(body);
                 var root = doc.RootElement;
 
+                string? generalMessage = null;
                 foreach (var key in new[] { "message", "error", "detail" })
                 {
                     if (root.ValueKind == JsonValueKind.Object &&
@@ -237,17 +288,19 @@ namespace IISApp.Services
                         var value = simpleProp.GetString();
                         if (!string.IsNullOrWhiteSpace(value))
                         {
-                            return value;
+                            generalMessage = value;
+                            break;
                         }
                     }
                 }
 
+                var fieldMessages = new List<string>();
                 if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("errors", out var errors))
                 {
                     var errorMessage = ExtractFieldErrors(errors);
                     if (!string.IsNullOrWhiteSpace(errorMessage))
                     {
-                        return errorMessage;
+                        fieldMessages.Add(errorMessage);
                     }
                 }
 
@@ -258,8 +311,23 @@ namespace IISApp.Services
                     var errorMessage = ExtractFieldErrors(data);
                     if (!string.IsNullOrWhiteSpace(errorMessage))
                     {
-                        return errorMessage;
+                        fieldMessages.Add(errorMessage);
                     }
+                }
+
+                if (!string.IsNullOrWhiteSpace(generalMessage) && fieldMessages.Count > 0)
+                {
+                    return $"{generalMessage}{Environment.NewLine}{string.Join(Environment.NewLine, fieldMessages)}";
+                }
+
+                if (!string.IsNullOrWhiteSpace(generalMessage))
+                {
+                    return generalMessage;
+                }
+
+                if (fieldMessages.Count > 0)
+                {
+                    return string.Join(Environment.NewLine, fieldMessages);
                 }
             }
             catch (JsonException)
@@ -268,6 +336,21 @@ namespace IISApp.Services
             }
 
             return body;
+        }
+
+        private static Dictionary<string, object> BuildRawPlayerPayload(string name, string team, string seasonText, string pointsText)
+        {
+            return new Dictionary<string, object>
+            {
+                ["name"] = name,
+                ["team"] = team,
+                ["season"] = int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season)
+                    ? season
+                    : seasonText,
+                ["points"] = double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points)
+                    ? points
+                    : pointsText
+            };
         }
 
         private static string? ExtractFieldErrors(JsonElement element)
