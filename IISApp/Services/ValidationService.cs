@@ -20,7 +20,12 @@ namespace IISApp.Services
             using var content = new StringContent(xml, Encoding.UTF8, "application/xml");
             var response = await _api.HttpClient.PostAsync("/validateAndSaveXml", content);
             var body = await response.Content.ReadAsStringAsync();
-            return response.IsSuccessStatusCode ? body : $"Validation/save failed ({(int)response.StatusCode}): {body}";
+            if (response.IsSuccessStatusCode)
+            {
+                return body;
+            }
+
+            return ApiService.FormatErrorMessage($"Validation/save failed ({(int)response.StatusCode}): {body}");
         }
     }
 }

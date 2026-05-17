@@ -273,9 +273,30 @@ namespace IISApp.Services
                 return $"Request failed with status code {(int)response.StatusCode} ({response.StatusCode}).";
             }
 
+            return FormatErrorMessage(body);
+        }
+
+        public static string FormatErrorMessage(string rawError)
+        {
+            if (string.IsNullOrWhiteSpace(rawError))
+            {
+                return rawError;
+            }
+
+            var trimmed = rawError.Trim();
+            var jsonStartIndex = trimmed.IndexOf('{');
+            var prefixText = string.Empty;
+            var jsonText = trimmed;
+
+            if (jsonStartIndex > 0)
+            {
+                prefixText = trimmed[..jsonStartIndex].Trim();
+                jsonText = trimmed[jsonStartIndex..].Trim();
+            }
+
             try
             {
-                using var doc = JsonDocument.Parse(body);
+                using var doc = JsonDocument.Parse(jsonText);
                 var root = doc.RootElement;
 
                 string? generalMessage = null;
@@ -332,10 +353,25 @@ namespace IISApp.Services
             }
             catch (JsonException)
             {
-                return body;
+                return rawError;
             }
 
-            return body;
+            return rawError;
+        }
+
+        private static Dictionary<string, object> BuildRawPlayerPayload(string name, string team, string seasonText, string pointsText)
+        {
+            return new Dictionary<string, object>
+            {
+                ["name"] = name,
+                ["team"] = team,
+                ["season"] = int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season)
+                    ? season
+                    : seasonText,
+                ["points"] = double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points)
+                    ? points
+                    : pointsText
+            };
         }
 
         private static Dictionary<string, object> BuildRawPlayerPayload(string name, string team, string seasonText, string pointsText)
