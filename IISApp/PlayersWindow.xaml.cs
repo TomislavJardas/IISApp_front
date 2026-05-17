@@ -34,69 +34,6 @@ namespace IISApp
             AccessModeTextBlock.Text = isReadOnly ? "Mode: Read-only" : "Mode: Full-access";
         }
 
-        private bool TryBuildPlayerFromForm(out Player player, out string errorMessage)
-        {
-            player = new Player();
-
-            var name = NameTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                errorMessage = "Name is required.";
-                return false;
-            }
-
-            var team = TeamTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(team))
-            {
-                errorMessage = "Team is required.";
-                return false;
-            }
-
-            var seasonText = SeasonTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(seasonText))
-            {
-                errorMessage = "Season is required.";
-                return false;
-            }
-
-            if (!int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season))
-            {
-                errorMessage = "Season must be a valid integer.";
-                return false;
-            }
-
-            if (season <= 0)
-            {
-                errorMessage = "Season must be greater than 0.";
-                return false;
-            }
-
-            var pointsText = PointsTextBox.Text.Trim();
-            if (string.IsNullOrWhiteSpace(pointsText))
-            {
-                errorMessage = "Points is required.";
-                return false;
-            }
-
-            if (!double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points))
-            {
-                errorMessage = "Points must be a valid number.";
-                return false;
-            }
-
-            player = new Player
-            {
-                Id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim(),
-                Name = name,
-                Team = team,
-                Season = season,
-                Points = points
-            };
-
-            errorMessage = string.Empty;
-            return true;
-        }
-
         private void PopulateForm(Player player)
         {
             IdTextBox.Text = player.Id ?? string.Empty;
@@ -170,30 +107,42 @@ namespace IISApp
                 return;
             }
 
-            if (!TryBuildPlayerFromForm(out var player, out var validationError))
-            {
-                MessageBox.Show(validationError);
-                return;
-            }
+            var playerId = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim();
+            var name = NameTextBox.Text.Trim();
+            var team = TeamTextBox.Text.Trim();
+            var seasonText = SeasonTextBox.Text.Trim();
+            var pointsText = PointsTextBox.Text.Trim();
 
             try
             {
-                Player? result;
-                if (string.IsNullOrWhiteSpace(player.Id))
+                ApiResult<Player> result;
+                if (string.IsNullOrWhiteSpace(playerId))
                 {
-                    result = await _api.CreatePlayerAsync(player);
-                    MessageBox.Show(result is null ? "Create failed." : "Player created.");
+                    result = await _api.CreatePlayerAsync(name, team, seasonText, pointsText);
+                    if (!result.Success)
+                    {
+                        MessageBox.Show(result.ErrorMessage, "Create failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    MessageBox.Show("Player created.");
                 }
                 else
                 {
-                    result = await _api.UpdatePlayerAsync(player);
-                    MessageBox.Show(result is null ? "Update failed." : "Player updated.");
+                    result = await _api.UpdatePlayerAsync(playerId, name, team, seasonText, pointsText);
+                    if (!result.Success)
+                    {
+                        MessageBox.Show(result.ErrorMessage, "Update failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    MessageBox.Show("Player updated.");
                 }
 
                 await LoadPlayersAsync();
-                if (result is not null)
+                if (result.Data is not null)
                 {
-                    PopulateForm(result);
+                    PopulateForm(result.Data);
                 }
             }
             catch (Exception ex)
@@ -235,11 +184,11 @@ namespace IISApp
 
         private async void ValidateButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!TryBuildPlayerFromForm(out var player, out var validationError))
-            {
-                MessageBox.Show(validationError);
-                return;
-            }
+            var playerId = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim();
+            var name = NameTextBox.Text.Trim();
+            var team = TeamTextBox.Text.Trim();
+            var seasonText = SeasonTextBox.Text.Trim();
+            var pointsText = PointsTextBox.Text.Trim();
 
             var xml = BuildPlayerXml(player);
             var schema = GetSelectedSchema();

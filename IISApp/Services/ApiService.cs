@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
 using IISApp.Models;
@@ -84,45 +85,66 @@ namespace IISApp.Services
             return await DeserializeAsync<Player>(response);
         }
 
-        public async Task<Player?> CreatePlayerAsync(Player player)
+        public async Task<ApiResult<Player>> CreatePlayerAsync(string? name, string? team, string? season, string? points)
         {
             var payload = new
             {
-                name = player.Name,
-                team = player.Team,
-                season = player.Season,
-                points = player.Points
+                name,
+                team,
+                season,
+                points
             };
             var response = await SendWithAutoRefreshAsync(HttpMethod.Post, "/api/players", payload);
             if (!response.IsSuccessStatusCode)
             {
-                return null;
+                return new ApiResult<Player>
+                {
+                    Success = false,
+                    StatusCode = response.StatusCode,
+                    ErrorMessage = await ReadErrorMessageAsync(response)
+                };
             }
 
-            return await DeserializeAsync<Player>(response);
+            return new ApiResult<Player>
+            {
+                Success = true,
+                StatusCode = response.StatusCode,
+                Data = await DeserializeAsync<Player>(response)
+            };
         }
 
-        public async Task<Player?> UpdatePlayerAsync(Player player)
+        public async Task<ApiResult<Player>> UpdatePlayerAsync(string recordId, string? name, string? team, string? season, string? points)
+
         {
-            if (string.IsNullOrWhiteSpace(player.Id))
+            if (string.IsNullOrWhiteSpace(recordId))
             {
-                throw new ArgumentException("Cannot update player without record id.", nameof(player));
+                throw new ArgumentException("Cannot update player without record id.", nameof(recordId));
             }
 
             var payload = new
             {
-                name = player.Name,
-                team = player.Team,
-                season = player.Season,
-                points = player.Points
+                name,
+                team,
+                season,
+                points
             };
-            var response = await SendWithAutoRefreshAsync(HttpMethod.Patch, $"/api/players/{Uri.EscapeDataString(player.Id)}", payload);
+            var response = await SendWithAutoRefreshAsync(HttpMethod.Patch, $"/api/players/{Uri.EscapeDataString(recordId)}", payload);
             if (!response.IsSuccessStatusCode)
             {
-                return null;
+                return new ApiResult<Player>
+                {
+                    Success = false,
+                    StatusCode = response.StatusCode,
+                    ErrorMessage = await ReadErrorMessageAsync(response)
+                };
             }
 
-            return await DeserializeAsync<Player>(response);
+            return new ApiResult<Player>
+            {
+                Success = true,
+                StatusCode = response.StatusCode,
+                Data = await DeserializeAsync<Player>(response)
+            };
         }
 
         public async Task<bool> DeletePlayerAsync(string recordId)
@@ -191,6 +213,100 @@ namespace IISApp.Services
             }
 
             return await _http.SendAsync(request);
+        }
+
+
+        private async Task<string> ReadErrorMessageAsync(HttpResponseMessage response)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return $"Request failed with status code {(int)response.StatusCode} ({response.StatusCode}).";
+            }
+
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+
+                foreach (var key in new[] { "message", "error", "detail" })
+                {
+                    if (root.ValueKind == JsonValueKind.Object &&
+                        root.TryGetProperty(key, out var simpleProp) &&
+                        simpleProp.ValueKind == JsonValueKind.String)
+                    {
+                        var value = simpleProp.GetString();
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            return value;
+                        }
+                    }
+                }
+
+                if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("errors", out var errors))
+                {
+                    var errorMessage = ExtractFieldErrors(errors);
+                    if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        return errorMessage;
+                    }
+                }
+
+                if (root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty("data", out var data) &&
+                    data.ValueKind == JsonValueKind.Object)
+                {
+                    var errorMessage = ExtractFieldErrors(data);
+                    if (!string.IsNullOrWhiteSpace(errorMessage))
+                    {
+                        return errorMessage;
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                return body;
+            }
+
+            return body;
+        }
+
+        private static string? ExtractFieldErrors(JsonElement element)
+        {
+            var messages = new List<string>();
+
+            if (element.ValueKind != JsonValueKind.Object)
+            {
+                return null;
+            }
+
+            foreach (var property in element.EnumerateObject())
+            {
+                if (property.Value.ValueKind == JsonValueKind.String)
+                {
+                    var value = property.Value.GetString();
+                    if (!string.IsNullOrWhiteSpace(value))
+                    {
+                        messages.Add($"{property.Name}: {value}");
+                    }
+
+                    continue;
+                }
+
+                if (property.Value.ValueKind == JsonValueKind.Object)
+                {
+                    if (property.Value.TryGetProperty("message", out var messageProp) && messageProp.ValueKind == JsonValueKind.String)
+                    {
+                        var value = messageProp.GetString();
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            messages.Add($"{property.Name}: {value}");
+                        }
+                    }
+                }
+            }
+
+            return messages.Count > 0 ? string.Join(Environment.NewLine, messages) : null;
         }
 
         private async Task<T?> DeserializeAsync<T>(HttpResponseMessage response)
