@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:IISApp"
         mc:Ignorable="d"
-        Title="Weather (XML-RPC)" Height="450" Width="800">
+        Title="Weather (gRPC)" Height="450" Width="800">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -23,7 +23,7 @@
         <TextBox x:Name="CityNameTextBox" Grid.Row="0" Grid.Column="1" Margin="5"
                  FontFamily="Consolas" FontSize="12" AcceptsReturn="False" />
 
-        <Button x:Name="SendXmlRpcRequestButton" Grid.Row="1" Grid.ColumnSpan="2" Content="Get Weather via XML-RPC" Margin="5" Click="SendXmlRpcRequestButton_Click" />
+        <Button x:Name="SendXmlRpcRequestButton" Grid.Row="1" Grid.ColumnSpan="2" Content="Get Weather via gRPC" Margin="5" Click="SendXmlRpcRequestButton_Click" />
 
         <TextBlock x:Name="StatusTextBlock" Grid.Row="2" Grid.ColumnSpan="2" Margin="5" FontWeight="SemiBold" />
 

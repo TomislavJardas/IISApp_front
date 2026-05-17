@@ -9,7 +9,7 @@ namespace IISApp.Services
 
         public static string SoapBaseUrl => ReadRequired("SoapBaseUrl", ApiBaseUrl);
 
-        public static string WeatherServiceUrl => ReadRequired("WeatherServiceUrl", "http://localhost:9090/RPC2");
+        public static string WeatherGrpcAddress => ReadRequired("WeatherGrpcAddress", "http://localhost:9090");
 
         public static FrontendAccessMode AccessMode
         {
