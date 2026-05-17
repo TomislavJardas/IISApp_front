@@ -178,22 +178,34 @@ namespace IISApp
 
             try
             {
-                Player? result;
+                ApiResult<Player> result;
                 if (string.IsNullOrWhiteSpace(player.Id))
                 {
                     result = await _api.CreatePlayerAsync(player);
-                    MessageBox.Show(result is null ? "Create failed." : "Player created.");
+                    if (!result.Success)
+                    {
+                        MessageBox.Show(result.ErrorMessage, "Create failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    MessageBox.Show("Player created.");
                 }
                 else
                 {
                     result = await _api.UpdatePlayerAsync(player);
-                    MessageBox.Show(result is null ? "Update failed." : "Player updated.");
+                    if (!result.Success)
+                    {
+                        MessageBox.Show(result.ErrorMessage, "Update failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    MessageBox.Show("Player updated.");
                 }
 
                 await LoadPlayersAsync();
-                if (result is not null)
+                if (result.Data is not null)
                 {
-                    PopulateForm(result);
+                    PopulateForm(result.Data);
                 }
             }
             catch (Exception ex)
