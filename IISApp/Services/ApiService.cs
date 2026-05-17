@@ -445,6 +445,23 @@ namespace IISApp.Services
         {
             var messages = new List<string>();
 
+            if (element.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in element.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String)
+                    {
+                        var value = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(value))
+                        {
+                            messages.Add($"- {value}");
+                        }
+                    }
+                }
+
+                return messages.Count > 0 ? string.Join(Environment.NewLine, messages) : null;
+            }
+
             if (element.ValueKind != JsonValueKind.Object)
             {
                 return null;

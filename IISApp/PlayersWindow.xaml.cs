@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Xml.Linq;
@@ -112,6 +113,12 @@ namespace IISApp
             var seasonText = SeasonTextBox.Text.Trim();
             var pointsText = PointsTextBox.Text.Trim();
 
+            if (!TryValidatePlayerInputs(name, team, seasonText, pointsText, out var validationError))
+            {
+                MessageBox.Show(validationError, "Player validation failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             try
             {
                 ApiResult<Player> result;
@@ -148,6 +155,65 @@ namespace IISApp
             {
                 MessageBox.Show($"Save failed: {ex.Message}");
             }
+        }
+
+        private bool TryValidatePlayerInputs(
+            string name,
+            string team,
+            string seasonText,
+            string pointsText,
+            out string errorMessage)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                errorMessage = "Name is required.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(team))
+            {
+                errorMessage = "Team is required.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(seasonText))
+            {
+                errorMessage = "Season is required.";
+                return false;
+            }
+
+            if (!int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season))
+            {
+                errorMessage = "Season must be a valid whole number.";
+                return false;
+            }
+
+            if (season <= 0)
+            {
+                errorMessage = "Season must be greater than 0.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(pointsText))
+            {
+                errorMessage = "Points is required.";
+                return false;
+            }
+
+            if (!double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points))
+            {
+                errorMessage = "Points must be a valid number.";
+                return false;
+            }
+
+            if (points < 0)
+            {
+                errorMessage = "Points must be greater than or equal to 0.";
+                return false;
+            }
+
+            errorMessage = string.Empty;
+            return true;
         }
 
         private async void DeleteButton_Click(object sender, RoutedEventArgs e)
