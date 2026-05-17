@@ -170,11 +170,20 @@ namespace IISApp
                 return;
             }
 
-            if (!TryBuildPlayerFromForm(out var player, out var validationError))
+            var seasonText = SeasonTextBox.Text.Trim();
+            var pointsText = PointsTextBox.Text.Trim();
+
+            _ = int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season);
+            _ = double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points);
+
+            var player = new Player
             {
-                MessageBox.Show(validationError);
-                return;
-            }
+                Id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim(),
+                Name = NameTextBox.Text.Trim(),
+                Team = TeamTextBox.Text.Trim(),
+                Season = season,
+                Points = points
+            };
 
             try
             {
