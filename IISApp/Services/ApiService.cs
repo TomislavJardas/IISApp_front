@@ -273,13 +273,84 @@ namespace IISApp.Services
                 return $"Request failed with status code {(int)response.StatusCode} ({response.StatusCode}).";
             }
 
+            return FormatErrorMessage(body);
+        }
+
+        public static string FormatErrorMessage(string rawError)
+        {
+            if (string.IsNullOrWhiteSpace(rawError))
+            {
+                return rawError;
+            }
+
+            var trimmedError = rawError.Trim();
+            var jsonStartIndex = trimmedError.IndexOf('{');
+            var prefix = string.Empty;
+            var jsonCandidate = trimmedError;
+
+            if (jsonStartIndex > 0)
+            {
+                prefix = trimmedError[..jsonStartIndex].Trim().TrimEnd(':');
+                var markerIndex = prefix.IndexOf(" (", StringComparison.Ordinal);
+                if (markerIndex > 0)
+                {
+                    prefix = prefix[..markerIndex];
+                }
+
+                if (!prefix.EndsWith(".", StringComparison.Ordinal))
+                {
+                    prefix = $"{prefix}.";
+                }
+
+                jsonCandidate = trimmedError[jsonStartIndex..];
+            }
+
             try
             {
-                using var doc = JsonDocument.Parse(body);
+                using var doc = JsonDocument.Parse(jsonCandidate);
                 var root = doc.RootElement;
 
+                var lines = new List<string>();
+                if (!string.IsNullOrWhiteSpace(prefix))
+                {
+                    lines.Add(prefix);
+                }
+
+                if (root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty("status", out var statusProp) &&
+                    (statusProp.ValueKind == JsonValueKind.Number || statusProp.ValueKind == JsonValueKind.String))
+                {
+                    var statusValue = statusProp.ToString();
+                    if (!string.IsNullOrWhiteSpace(statusValue))
+                    {
+                        lines.Add($"Status: {statusValue}");
+                    }
+                }
+
+                if (root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty("error", out var errorProp) &&
+                    errorProp.ValueKind == JsonValueKind.String)
+                {
+                    var errorValue = errorProp.GetString();
+                    if (!string.IsNullOrWhiteSpace(errorValue))
+                    {
+                        lines.Add($"Error: {errorValue}");
+                    }
+                }
+
+                if (root.ValueKind == JsonValueKind.Object &&
+                    root.TryGetProperty("path", out var pathProp) &&
+                    pathProp.ValueKind == JsonValueKind.String)
+                {
+                    var pathValue = pathProp.GetString();
+                    if (!string.IsNullOrWhiteSpace(pathValue))
+                    {
+                        lines.Add($"Path: {pathValue}");
+                    }
+                }
+
                 string? generalMessage = null;
-                foreach (var key in new[] { "message", "error", "detail" })
+                foreach (var key in new[] { "message", "detail" })
                 {
                     if (root.ValueKind == JsonValueKind.Object &&
                         root.TryGetProperty(key, out var simpleProp) &&
@@ -320,6 +391,23 @@ namespace IISApp.Services
                     return $"{generalMessage}{Environment.NewLine}{string.Join(Environment.NewLine, fieldMessages)}";
                 }
 
+                if (!string.IsNullOrWhiteSpace(generalMessage) && lines.Count > 0)
+                {
+                    lines.Insert(0, generalMessage);
+                    return string.Join(Environment.NewLine, lines);
+                }
+
+                if (fieldMessages.Count > 0 && lines.Count > 0)
+                {
+                    lines.Add(string.Join(Environment.NewLine, fieldMessages));
+                    return string.Join(Environment.NewLine, lines);
+                }
+
+                if (lines.Count > 0)
+                {
+                    return string.Join(Environment.NewLine, lines);
+                }
+
                 if (!string.IsNullOrWhiteSpace(generalMessage))
                 {
                     return generalMessage;
@@ -332,10 +420,10 @@ namespace IISApp.Services
             }
             catch (JsonException)
             {
-                return body;
+                return rawError;
             }
 
-            return body;
+            return rawError;
         }
 
         private static Dictionary<string, object> BuildRawPlayerPayload(string name, string team, string seasonText, string pointsText)
