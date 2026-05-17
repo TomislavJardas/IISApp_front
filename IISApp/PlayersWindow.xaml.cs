@@ -170,30 +170,51 @@ namespace IISApp
                 return;
             }
 
-            if (!TryBuildPlayerFromForm(out var player, out var validationError))
+            var seasonText = SeasonTextBox.Text.Trim();
+            var pointsText = PointsTextBox.Text.Trim();
+
+            _ = int.TryParse(seasonText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var season);
+            _ = double.TryParse(pointsText, NumberStyles.Float, CultureInfo.InvariantCulture, out var points);
+
+            var player = new Player
             {
-                MessageBox.Show(validationError);
-                return;
-            }
+                Id = string.IsNullOrWhiteSpace(IdTextBox.Text) ? null : IdTextBox.Text.Trim(),
+                Name = NameTextBox.Text.Trim(),
+                Team = TeamTextBox.Text.Trim(),
+                Season = season,
+                Points = points
+            };
 
             try
             {
-                Player? result;
+                ApiResult<Player> result;
                 if (string.IsNullOrWhiteSpace(player.Id))
                 {
                     result = await _api.CreatePlayerAsync(player);
-                    MessageBox.Show(result is null ? "Create failed." : "Player created.");
+                    if (!result.Success)
+                    {
+                        MessageBox.Show(result.ErrorMessage, "Create failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    MessageBox.Show("Player created.");
                 }
                 else
                 {
                     result = await _api.UpdatePlayerAsync(player);
-                    MessageBox.Show(result is null ? "Update failed." : "Player updated.");
+                    if (!result.Success)
+                    {
+                        MessageBox.Show(result.ErrorMessage, "Update failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    MessageBox.Show("Player updated.");
                 }
 
                 await LoadPlayersAsync();
-                if (result is not null)
+                if (result.Data is not null)
                 {
-                    PopulateForm(result);
+                    PopulateForm(result.Data);
                 }
             }
             catch (Exception ex)
