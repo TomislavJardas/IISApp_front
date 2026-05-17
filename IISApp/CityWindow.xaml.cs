@@ -12,7 +12,7 @@ namespace IISApp
         public CityWindow()
         {
             InitializeComponent();
-            _client = new WeatherServiceClient(AppConfig.WeatherServiceUrl);
+            _client = new WeatherServiceClient(AppConfig.WeatherGrpcAddress);
         }
 
         private async void SendXmlRpcRequestButton_Click(object sender, RoutedEventArgs e)
