@@ -3,32 +3,19 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:IISApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-        <Grid Margin="20" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-
-            <TextBlock Grid.Row="0" Text="Hi and Welcome to Weather" FontSize="24" FontWeight="Bold" Foreground="Black" HorizontalAlignment="Center" Margin="0 0 0 20" />
-
-
-            <Button Grid.Row="1" x:Name="OpenLoginWindowButton" Content="Open Login Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenLoginWindowButton_Click" />
-            <Button Grid.Row="2" x:Name="OpenPlayersWindowButton" Content="Open Players Window" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenPlayersWindowButton_Click" />
-            <Button Grid.Row="3" x:Name="OpenSOAPWindowButton" Content="Open SOAP Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenSOAPWindowButton_Click" />
-            <Button Grid.Row="4" x:Name="OpenXRPCWindowBUtton" Content="Open XRPC Request" Width="200" Height="40" HorizontalAlignment="Center" Margin="0 10" Click="OpenXRCPWindowButton_Click" />
-        </Grid>
+        Title="IIS Frontend Dashboard" Height="520" Width="920">
+    <Grid Margin="24">
+        <Border Style="{StaticResource CardPanelStyle}" MaxWidth="520" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel>
+                <TextBlock Text="IIS Frontend" Style="{StaticResource SectionTitleStyle}" HorizontalAlignment="Center"/>
+                <TextBlock Text="Choose a feature window" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                <Button x:Name="OpenLoginWindowButton" Content="Login" Click="OpenLoginWindowButton_Click"/>
+                <Button x:Name="OpenPlayersWindowButton" Content="REST Players" Click="OpenPlayersWindowButton_Click"/>
+                <Button x:Name="OpenGraphQlWindowButton" Content="GraphQL Players" Click="OpenGraphQlWindowButton_Click"/>
+                <Button x:Name="OpenSOAPWindowButton" Content="SOAP Players" Click="OpenSOAPWindowButton_Click"/>
+                <Button x:Name="OpenXRPCWindowBUtton" Content="Weather (gRPC)" Click="OpenXRCPWindowButton_Click"/>
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

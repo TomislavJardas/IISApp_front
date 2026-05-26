@@ -29,6 +29,12 @@ namespace IISApp
             playersWindow.Show();
         }
 
+        private void OpenGraphQlWindowButton_Click(object sender, RoutedEventArgs e)
+        {
+            var graphQlWindow = new GraphQlWindow(_api, _permissionService);
+            graphQlWindow.Show();
+        }
+
         private void OpenSOAPWindowButton_Click(object sender, RoutedEventArgs e)
         {
             var soapWindow = new SOAPWindow();

@@ -5,7 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Players" Height="560" Width="860">
-    <Grid Margin="10">
+    <Grid Margin="16">
+        <Border Style="{StaticResource CardPanelStyle}">
+        <Grid Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -56,5 +58,7 @@
         </StackPanel>
 
         <ListBox x:Name="PlayersListBox" Grid.Row="7" Grid.ColumnSpan="2" Margin="5" SelectionChanged="PlayersListBox_SelectionChanged" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>
