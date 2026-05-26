@@ -6,7 +6,9 @@
         xmlns:local="clr-namespace:IISApp"
         mc:Ignorable="d"
         Title="ValidateAndSaveWindow" Height="450" Width="800">
-    <Grid Margin="10">
+    <Grid Margin="16">
+        <Border Style="{StaticResource CardPanelStyle}">
+        <Grid Margin="4">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -46,5 +48,7 @@
 
 
         <TextBox x:Name="ResponseTextBox" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="5" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" IsReadOnly="True" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>

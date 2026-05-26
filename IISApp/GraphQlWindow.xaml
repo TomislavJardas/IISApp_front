@@ -1,0 +1,84 @@
+<Window x:Class="IISApp.GraphQlWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="GraphQL Players" Height="620" Width="980">
+    <Grid Margin="18">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Style="{StaticResource CardPanelStyle}" Margin="0,0,12,0">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="GraphQL Players" Style="{StaticResource SectionTitleStyle}"/>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
+                    <Button Content="Load players" Click="LoadPlayersButton_Click"/>
+                    <TextBlock x:Name="StatusTextBlock" Margin="10,10,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DataGrid Grid.Row="2" x:Name="PlayersDataGrid" AutoGenerateColumns="False" SelectionMode="Single" SelectionChanged="PlayersDataGrid_SelectionChanged">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Record ID" Binding="{Binding Id}" Width="*"/>
+                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                        <DataGridTextColumn Header="Team" Binding="{Binding Team}" Width="*"/>
+                        <DataGridTextColumn Header="Season" Binding="{Binding Season}" Width="*"/>
+                        <DataGridTextColumn Header="Points" Binding="{Binding Points}" Width="*"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Column="1" Style="{StaticResource CardPanelStyle}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="Player details" Style="{StaticResource SectionTitleStyle}"/>
+
+                <Label Grid.Row="1" Content="Record ID"/>
+                <TextBox Grid.Row="2" x:Name="IdTextBox"/>
+                <Label Grid.Row="3" Content="Name"/>
+                <TextBox Grid.Row="4" x:Name="NameTextBox"/>
+
+                <Grid Grid.Row="5" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                        <Label Content="Team"/>
+                        <TextBox x:Name="TeamTextBox"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                        <Label Content="Season"/>
+                        <TextBox x:Name="SeasonTextBox"/>
+                    </StackPanel>
+                </Grid>
+
+                <Label Grid.Row="6" Content="Points"/>
+                <StackPanel Grid.Row="7">
+                    <TextBox x:Name="PointsTextBox" Margin="0,0,0,10"/>
+                    <TextBlock x:Name="AccessModeTextBlock" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                    <WrapPanel>
+                        <Button x:Name="LoadByIdButton" Content="Load by ID" Click="LoadByIdButton_Click"/>
+                        <Button x:Name="CreateButton" Content="Create" Click="CreateButton_Click"/>
+                        <Button x:Name="UpdateButton" Content="Update" Click="UpdateButton_Click"/>
+                        <Button x:Name="DeleteButton" Content="Delete" Click="DeleteButton_Click"/>
+                        <Button Content="Clear" Click="ClearButton_Click"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

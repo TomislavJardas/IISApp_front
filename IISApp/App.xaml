@@ -4,6 +4,63 @@
              xmlns:local="clr-namespace:IISApp"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <SolidColorBrush x:Key="AppBackgroundBrush" Color="#0E1A2B"/>
+        <SolidColorBrush x:Key="CardBrush" Color="#15243B"/>
+        <SolidColorBrush x:Key="CardBorderBrush" Color="#263D5A"/>
+        <SolidColorBrush x:Key="PrimaryTextBrush" Color="#E8EDF5"/>
+
+        <Style TargetType="Window">
+            <Setter Property="Background" Value="{StaticResource AppBackgroundBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+        </Style>
+
+        <Style x:Key="CardPanelStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource CardBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#2E67F8"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="BorderBrush" Value="#3C7BFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#1C2D47"/>
+            <Setter Property="Foreground" Value="#F0F4FA"/>
+            <Setter Property="BorderBrush" Value="#3A5272"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <Style TargetType="PasswordBox">
+            <Setter Property="Background" Value="#1C2D47"/>
+            <Setter Property="Foreground" Value="#F0F4FA"/>
+            <Setter Property="BorderBrush" Value="#3A5272"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource PrimaryTextBrush}"/>
+        </Style>
+
+        <Style x:Key="SectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="22"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
     </Application.Resources>
 </Application>
